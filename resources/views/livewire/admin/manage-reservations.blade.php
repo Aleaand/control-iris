@@ -410,6 +410,36 @@
 
                     <form wire:submit.prevent="confirmSave" class="p-6 space-y-4">
 
+                        @if($isAdendaMode)
+                            <div class="bg-violet-950/30 border border-violet-500/30 p-3 rounded-[10px] mb-4">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-violet-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-[10px] font-black text-violet-300 uppercase tracking-widest mb-1">Upgrade / Adenda Detectada</p>
+                                        <p class="text-[9px] text-zinc-400 leading-relaxed uppercase font-bold">
+                                            Estás añadiendo servicios a una reserva existente. <span class="text-violet-400">Se generará un nuevo pago y una segunda factura</span> por la diferencia o el nuevo servicio.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @elseif($isEditing)
+                            <div class="bg-amber-950/30 border border-amber-500/30 p-3 rounded-[10px] mb-4">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-amber-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Modo Edición Administrativa</p>
+                                        <p class="text-[9px] text-zinc-400 leading-relaxed uppercase font-bold">
+                                            Modificando datos maestros. Los cambios de precio en este modo <span class="text-amber-500 font-black">NO generarán cobros adicionales automáticos</span>. Úselo solo para correcciones.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         <!-- TAB RESERVA ESPACIAL -->
                         <div x-show="tab === 'space'" x-transition:enter="transition ease-out duration-200"
                             x-transition:enter-start="opacity-0 translate-y-2"

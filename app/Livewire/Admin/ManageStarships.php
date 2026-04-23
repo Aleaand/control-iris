@@ -15,6 +15,10 @@ class ManageStarships extends Component
     public $crew_daily_rate = 0;
     public $isEditing = false, $starshipId;
     public $search = '';
+    
+    #[\Livewire\Attributes\Url(as: 'status')]
+    public $statusFilter = 'all';
+
     public $sortDir = 'asc';
     public $showSaveModal = false;
     public $showDeleteModal = false;
@@ -133,6 +137,22 @@ class ManageStarships extends Component
         if ($this->search) {
             $query->where('name', 'like', '%' . $this->search . '%')
                 ->orWhere('id', 'like', $this->search . '%');
+        }
+
+        if ($this->statusFilter === 'in_flight') {
+            $query->where('status', 'active')->whereHas('flights', function ($q) {
+                $q->where('status', 'in_orbit');
+            });
+        } elseif ($this->statusFilter === 'maintenance') {
+            $query->where('status', 'maintenance');
+        } elseif ($this->statusFilter === 'ready') {
+            $query->where('status', 'active')->whereHas('flights', function ($q) {
+                $q->where('status', 'scheduled');
+            });
+        } elseif ($this->statusFilter === 'idle') {
+            $query->where('status', 'active')->whereDoesntHave('flights', function ($q) {
+                $q->whereIn('status', ['in_orbit', 'scheduled']);
+            });
         }
 
         $starships = $query->orderBy('name', $this->sortDir)->get();

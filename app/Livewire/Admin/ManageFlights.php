@@ -14,7 +14,11 @@ class ManageFlights extends Component
 {
     #[\Livewire\Attributes\Url]
     public $search = '';
+    
+    #[\Livewire\Attributes\Url(as: 'period')]
     public $periodFilter = 'all';
+
+    #[\Livewire\Attributes\Url(as: 'status')]
     public $statusFilter = 'all';
     public $sortDir = 'desc';
     public $flightId;

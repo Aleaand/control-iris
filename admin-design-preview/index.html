@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iris Aerospace | Obsidian Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="obsidian-bg">
+
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <img src="../public/assets/logo_iris.png" alt="Iris" class="logo-img">
+                    <div style="line-height: 1.2;">
+                        <span style="font-weight: 700; font-size: 14px; letter-spacing: 0.1em; color: white;">IRIS</span><br>
+                        <span style="font-family: var(--font-mono); font-size: 8px; color: var(--neon-cyan);">AEROSPACE</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <div class="nav-module">
+                    <p class="nav-module-label">Misión y Logística</p>
+                    <a href="#" class="nav-item">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <circle cx="12" cy="12" r="4"></circle>
+                        </svg>
+                        Sistemas Orbitales
+                    </a>
+                    <a href="#" class="nav-item active">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 4.5 20.5 4c-.5-.5-2-.5-3.5 1L13.5 8.5l-8.2-1.8c-.9-.2-1.8.4-2 1.3l-.3 1.3c-.2.9.4 1.8 1.3 2l8.2 1.8-3.5 3.5c-1 1-1.5 2.5-1.5 3.5 0 .5.5 1 1 1 1 0 2.5-.5 3.5-1.5L15.5 16l8.2 1.8c.9.2 1.8-.4 2-1.3l.3-1.3c.2-.9-.4-1.8-1.3-2l-6.9-1.5z"></path>
+                        </svg>
+                        Gestión de Vuelos
+                    </a>
+                </div>
+
+                <div class="nav-module" style="margin-top: 40px;">
+                    <p class="nav-module-label">Protocolos de Pago</p>
+                    <a href="#" class="nav-item" style="--accent: var(--neon-violet);">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                            <line x1="2" y1="10" x2="22" y2="10"></line>
+                        </svg>
+                        Finanzas (Stripe)
+                    </a>
+                </div>
+            </nav>
+
+            <div style="padding: 20px; border-top: 1px solid var(--border-glass);">
+                <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 9px; color: var(--text-secondary);">
+                    <span>LAT: 40.4168</span>
+                    <span>LNG: -3.7038</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- List Section -->
+            <section class="content-list animate-in">
+                <header class="page-header">
+                    <h1 class="page-title">Centro de Control de Vuelos</h1>
+                    <p style="color: var(--text-secondary); font-size: 14px;">Monitorización de trayectorias activas y naves clase AU.</p>
+                </header>
+
+                <div class="tech-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--neon-cyan);">DATASET_0422_REV_A</div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" class="tech-input" placeholder="Buscar ID..." style="padding: 8px 12px; width: 200px; font-size: 12px;">
+                        </div>
+                    </div>
+
+                    <table class="data-grid">
+                        <thead>
+                            <tr>
+                                <th>IDENTIFICADOR</th>
+                                <th>DESTINO</th>
+                                <th>ESTADO</th>
+                                <th>CRONOGRAMA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="data-row">
+                                <td style="font-family: var(--font-mono); color: var(--neon-cyan);">#IRIS-2026-X1</td>
+                                <td style="font-weight: 500;">Estación Orbital Alfa</td>
+                                <td><span class="badge badge-ok">ACTIVO</span></td>
+                                <td style="font-family: var(--font-mono); font-size: 12px;">T+ 24:05:26</td>
+                            </tr>
+                            <tr class="data-row">
+                                <td style="font-family: var(--font-mono); color: var(--neon-cyan);">#IRIS-2026-X2</td>
+                                <td style="font-weight: 500;">Luna - Base Artemis</td>
+                                <td><span class="badge badge-pending">PENDIENTE</span></td>
+                                <td style="font-family: var(--font-mono); font-size: 12px;">T- 12:06:26</td>
+                            </tr>
+                            <tr class="data-row">
+                                <td style="font-family: var(--font-mono); color: var(--neon-cyan);">#IRIS-2026-X3</td>
+                                <td style="font-weight: 500;">Marte - Domo 1</td>
+                                <td><span class="badge badge-ok">LISTO</span></td>
+                                <td style="font-family: var(--font-mono); font-size: 12px;">T- 15:07:26</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Form Section -->
+            <section class="content-form-container animate-in" style="animation-delay: 0.1s;">
+                <div class="sticky-wrapper">
+                    <div class="tech-card">
+                        <header class="form-header">
+                            <h2 class="form-title">Configuración de Vuelo</h2>
+                            <span style="font-family: var(--font-mono); font-size: 10px; color: var(--neon-cyan);">ID: X2-004</span>
+                        </header>
+
+                        <form>
+                            <div class="input-group">
+                                <label class="input-label">Identificador de Misión</label>
+                                <input type="text" class="tech-input" value="#IRIS-2026-X2" readonly style="color: var(--text-secondary); cursor: not-allowed;">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Vector de Destino</label>
+                                <input type="text" class="tech-input" value="Luna - Base Artemis">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Complejo de Alojamiento (Hotel)</label>
+                                <select class="tech-input">
+                                    <option>Hotel Lunar Selene</option>
+                                    <option>Artemis Resort</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Presupuesto Asignado (EUR)</label>
+                                <input type="number" class="tech-input" value="450000">
+                            </div>
+
+                            <div style="display: flex; gap: 15px; margin-top: 40px;">
+                                <button type="button" class="btn btn-primary" style="flex: 1;">Actualizar Registro</button>
+                                <button type="button" class="btn btn-secondary">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </form>
+
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-glass);">
+                            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                > STATUS: WAITING_FOR_SYNC<br>
+                                > ENCRYPT: AES-256-GCM<br>
+                                > AUTH: GESTOR_ALPHA
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+</body>
+</html>

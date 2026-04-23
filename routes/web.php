@@ -18,7 +18,7 @@ Route::view('profile', 'profile')
 require __DIR__ . '/auth.php';
 
 Route::middleware(['auth', 'role:super_admin'])->group(function () {
-    Route::get('/admin', \App\Livewire\Admin\AdminDashboard::class)->name('admin.dashboard');
+    Route::get('/admin/dashboard', \App\Livewire\Admin\AdminDashboard::class)->name('admin.dashboard');
     Route::get('admin/destinations', ManageDestinations::class)->name('admin.destinations');
     Route::get('admin/starships', ManageStarships::class)->name('admin.starships');
     Route::get('/admin/flights', \App\Livewire\Admin\ManageFlights::class)->name('admin.flights');
