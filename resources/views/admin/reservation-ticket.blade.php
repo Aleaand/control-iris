@@ -4,904 +4,967 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IRIS — Ticket de Reserva #{{ substr($res->id_locator, 0, 8) }}</title>
+    <title>IRIS — Documento de Reserva #{{ strtoupper($res->id_locator) }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <style>
         :root {
-            --cream: #f5f2ec;
-            --ink: #0e0c0a;
-            --violet: #3d1f8a;
-            --violet-mid: #6b3fa0;
-            --violet-light: #c4b0e8;
-            --gold: #b8955a;
-            --divider: rgba(14, 12, 10, 0.1);
-        }
-
-        * {
-            box-sizing: border-box;
+            --iris-violet: #6366f1;
+            --iris-cyan: #06b6d4;
+            --bg-card: #ffffff;
+            --text-dark: #0f172a;
+            --text-gray: #475569;
         }
 
         body {
-            font-family: 'DM Sans', sans-serif;
-            background: #1a1625;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem 1rem 8rem;
-        }
-
-        .ticket-shell {
-            width: 100%;
-            max-width: 860px;
+            padding: 2rem;
+            overflow-x: hidden;
+            background: #020617;
             position: relative;
         }
 
-        /* ── Main ticket card ── */
-        .ticket {
-            background: var(--cream);
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow:
-                0 0 0 1px rgba(255, 255, 255, 0.06),
-                0 40px 100px rgba(0, 0, 0, 0.55),
-                0 8px 30px rgba(61, 31, 138, 0.25);
-            position: relative;
+        /* ── Breathing Background ── */
+        .breathing-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #020617 100%);
         }
 
-        /* Perforated tear line */
-        .tear-line {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .tear-line::before,
-        .tear-line::after {
-            content: '';
-            display: block;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #1a1625;
-            flex-shrink: 0;
-            position: relative;
-            z-index: 2;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-        }
-
-        .tear-dots {
-            flex: 1;
-            border-top: 2px dashed rgba(14, 12, 10, 0.15);
-            margin: 0 -1px;
-        }
-
-        /* ── Header strip ── */
-        .ticket-header {
-            background: var(--ink);
-            padding: 2rem 2.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Subtle star field */
-        .ticket-header::before {
+        .breathing-bg::before {
             content: '';
             position: absolute;
             inset: 0;
-            background-image:
-                radial-gradient(1px 1px at 15% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 100%),
-                radial-gradient(1px 1px at 35% 70%, rgba(255, 255, 255, 0.3) 0%, transparent 100%),
-                radial-gradient(1px 1px at 55% 20%, rgba(255, 255, 255, 0.5) 0%, transparent 100%),
-                radial-gradient(1px 1px at 75% 60%, rgba(255, 255, 255, 0.3) 0%, transparent 100%),
-                radial-gradient(1px 1px at 88% 40%, rgba(255, 255, 255, 0.4) 0%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 25% 85%, rgba(255, 255, 255, 0.25) 0%, transparent 100%),
-                radial-gradient(1px 1px at 65% 45%, rgba(255, 255, 255, 0.35) 0%, transparent 100%),
-                radial-gradient(1px 1px at 92% 75%, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
-            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+            animation: breathe 8s ease-in-out infinite;
         }
 
-        /* Violet glow in header */
-        .ticket-header::after {
-            content: '';
-            position: absolute;
-            right: -80px;
-            top: -80px;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(107, 63, 160, 0.35) 0%, transparent 70%);
-            pointer-events: none;
+        @keyframes breathe {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 0.8;
+            }
         }
 
-        .header-logo-wrap {
+        /* ── The Card ── */
+        .card {
+            width: 950px;
+            background: var(--bg-card);
+            border-radius: 40px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
             position: relative;
-            z-index: 1;
+            animation: slideUp 1s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .header-logo-wrap img {
-            height: 40px;
-            filter: invert(1) brightness(10);
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .header-tagline {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            letter-spacing: 0.22em;
-            color: rgba(255, 255, 255, 0.35);
-            text-transform: uppercase;
-            margin-top: 6px;
-        }
-
-        .header-locator {
+        /* ── Left Side (Main) ── */
+        .card-main {
+            flex: 1;
+            padding: 3rem;
             position: relative;
-            z-index: 1;
-            text-align: right;
         }
 
-        .locator-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            letter-spacing: 0.2em;
-            color: var(--violet-light);
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-
-        .locator-code {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #fff;
-            letter-spacing: 0.12em;
-            line-height: 1;
-        }
-
-        .locator-badge {
-            display: inline-flex;
+        .header {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 5px;
-            margin-top: 8px;
-            background: rgba(107, 63, 160, 0.35);
-            border: 1px solid rgba(196, 176, 232, 0.2);
-            border-radius: 4px;
-            padding: 3px 8px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            letter-spacing: 0.15em;
-            color: var(--violet-light);
-            text-transform: uppercase;
+            margin-bottom: 3rem;
         }
 
-        /* ── Flight strip ── */
-        .flight-strip {
-            background: var(--violet);
-            padding: 1.25rem 2.5rem;
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-img {
+            width: 45px;
+            height: 45px;
+            object-contain: fit;
+        }
+
+        .brand-name {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text-dark);
+        }
+
+        .doc-id {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-gray);
+            background: #f1f5f9;
+            padding: 6px 14px;
+            border-radius: 100px;
+        }
+
+        /* Flight Path */
+        .path {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 1rem;
+            margin-bottom: 3.5rem;
         }
 
-        .flight-endpoint {
+        .node {
             text-align: center;
         }
 
-        .flight-code {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.5rem;
+        .node .city-code {
+            font-size: 3.5rem;
             font-weight: 900;
-            color: #fff;
             line-height: 1;
-            letter-spacing: -0.02em;
+            color: var(--text-dark);
+            letter-spacing: -0.04em;
         }
 
-        .flight-city {
-            font-size: 9px;
-            letter-spacing: 0.18em;
-            color: var(--violet-light);
+        .node .city-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-gray);
+            margin-top: 6px;
             text-transform: uppercase;
-            margin-top: 4px;
-            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.05em;
         }
 
-        .flight-arrow {
+        .path-line {
             flex: 1;
+            height: 2px;
+            background-image: linear-gradient(to right, #e2e8f0 50%, transparent 50%);
+            background-size: 10px 100%;
+            margin: 0 2rem;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .path-line::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: transparent;
+        }
+
+        .spaceship-icon {
+            position: absolute;
+            color: var(--iris-violet);
+            z-index: 2;
+            transform: rotate(90deg);
+            background: #fff;
+            padding: 4px;
+            border-radius: 50%;
+        }
+
+        /* Details Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2.5rem;
+        }
+
+        .item label {
+            display: block;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-gray);
+            margin-bottom: 8px;
+        }
+
+        .item value {
+            display: block;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        /* ── Right Side (Stub) ── */
+        .card-stub {
+            width: 280px;
+            background: #f8fafc;
+            border-left: 2px dashed #e2e8f0;
+            padding: 2rem 1rem;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-        }
-
-        .flight-line {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .flight-line-inner {
-            flex: 1;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.25);
-            position: relative;
-        }
-
-        .flight-line-inner::after {
-            content: '▶';
-            position: absolute;
-            right: -6px;
-            top: -7px;
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .flight-num {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            letter-spacing: 0.15em;
-            color: rgba(255, 255, 255, 0.45);
-            text-transform: uppercase;
-        }
-
-        /* ── Body: two columns ── */
-        .ticket-body {
-            display: grid;
-            grid-template-columns: 1fr 280px;
-            gap: 0;
-        }
-
-        .ticket-main {
-            padding: 2rem 2.5rem;
-            border-right: 1px dashed var(--divider);
-        }
-
-        .ticket-stub {
-            padding: 2rem;
-            background: rgba(14, 12, 10, 0.02);
-        }
-
-        /* ── Section headers ── */
-        .section-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            letter-spacing: 0.22em;
-            color: rgba(14, 12, 10, 0.35);
-            text-transform: uppercase;
-            border-bottom: 1px solid var(--divider);
-            padding-bottom: 8px;
-            margin-bottom: 1.25rem;
-        }
-
-        /* ── Passenger ── */
-        .passenger-name {
-            font-family: 'Playfair Display', serif;
-            font-size: 2rem;
-            font-weight: 900;
-            color: var(--ink);
-            line-height: 1.1;
-            letter-spacing: -0.02em;
-        }
-
-        .passenger-email {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: rgba(14, 12, 10, 0.4);
-            margin-top: 4px;
-        }
-
-        .badge-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 10px;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-weight: 700;
-        }
-
-        .badge-violet {
-            background: rgba(61, 31, 138, 0.08);
-            color: var(--violet);
-            border: 1px solid rgba(61, 31, 138, 0.15);
-        }
-
-        .badge-emerald {
-            background: rgba(5, 150, 105, 0.07);
-            color: #065f46;
-            border: 1px solid rgba(5, 150, 105, 0.15);
-        }
-
-        /* ── Flight details grid ── */
-        .details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.25rem 2rem;
-            margin-top: 0;
-        }
-
-        .detail-item {}
-
-        .detail-key {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 7.5px;
-            letter-spacing: 0.2em;
-            color: rgba(14, 12, 10, 0.3);
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-
-        .detail-val {
-            font-family: 'DM Sans', sans-serif;
-            font-size: 15px;
-            font-weight: 500;
-            color: var(--ink);
-            line-height: 1.2;
-        }
-
-        .detail-val-accent {
-            color: var(--violet);
-            font-weight: 700;
-        }
-
-        .detail-sub {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(14, 12, 10, 0.35);
-            margin-top: 2px;
-        }
-
-        /* ── Logistics ── */
-        .logistics-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--divider);
-        }
-
-        .logistics-item:last-child {
-            border-bottom: none;
-        }
-
-        .logistics-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
-            border: 1px solid var(--divider);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            background: #fff;
-        }
-
-        .logistics-icon svg {
-            width: 14px;
-            height: 14px;
-        }
-
-        .logistics-name {
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--ink);
-        }
-
-        .logistics-sub {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: rgba(14, 12, 10, 0.38);
-            margin-top: 2px;
-        }
-
-        /* ── Stub right column ── */
-        .qr-wrap {
-            background: #fff;
-            border-radius: 12px;
-            padding: 14px;
-            display: inline-flex;
-            border: 1px solid var(--divider);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            text-align: center;
         }
 
         .qr-placeholder {
-            width: 120px;
-            height: 120px;
-            background: var(--cream);
-            border-radius: 4px;
+            width: 140px;
+            height: 140px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            overflow: hidden;
+            padding: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.02);
         }
 
-        /* QR corner marks */
-        .qr-placeholder::before,
-        .qr-placeholder::after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border: 2.5px solid var(--ink);
+        .locator-wrap {
+            margin-bottom: 2rem;
         }
 
-        .qr-placeholder::before {
-            top: 8px;
-            left: 8px;
-            border-right: none;
-            border-bottom: none;
-        }
-
-        .qr-placeholder::after {
-            bottom: 8px;
-            right: 8px;
-            border-left: none;
-            border-top: none;
-        }
-
-        .qr-inner-text {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 7.5px;
-            color: rgba(14, 12, 10, 0.3);
-            text-align: center;
-            letter-spacing: 0.05em;
-            line-height: 1.5;
-            padding: 0 10px;
+        .locator-label {
+            font-size: 9px;
+            font-weight: 800;
             text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-gray);
+            margin-bottom: 6px;
         }
 
-        .qr-hint {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            color: rgba(14, 12, 10, 0.28);
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            line-height: 1.6;
-            margin-top: 12px;
-        }
-
-        /* ── Financial summary ── */
-        .fin-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            gap: 8px;
-        }
-
-        .fin-label {
-            font-size: 11px;
-            color: rgba(14, 12, 10, 0.42);
-        }
-
-        .fin-val {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: var(--ink);
-        }
-
-        .fin-discount {
-            color: #065f46;
-        }
-
-        .fin-total-label {
-            font-family: 'Playfair Display', serif;
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--ink);
-        }
-
-        .fin-total-val {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.6rem;
+        .locator-val {
+            font-size: 1rem;
+            margin-inline: 10px;
             font-weight: 900;
-            color: var(--violet);
-            letter-spacing: -0.02em;
+            color: var(--iris-violet);
+            letter-spacing: 0.05em;
         }
 
-        .payment-confirmed {
-            margin-top: 10px;
-            background: rgba(5, 150, 105, 0.07);
-            border: 1px solid rgba(5, 150, 105, 0.18);
-            border-radius: 6px;
-            padding: 6px 10px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            letter-spacing: 0.2em;
+        .passenger {
+            margin-top: auto;
+            text-align: left;
+            width: 100%;
+            padding-top: 2rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .pass-label {
+            font-size: 9px;
+            font-weight: 800;
             text-transform: uppercase;
-            color: #065f46;
-            text-align: center;
-            font-weight: 700;
+            color: var(--text-gray);
+            margin-bottom: 4px;
         }
 
-        /* ── Footer ── */
-        .ticket-footer {
-            background: var(--ink);
-            padding: 12px 2.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .pass-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-dark);
         }
 
-        .footer-text {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            letter-spacing: 0.18em;
-            color: rgba(255, 255, 255, 0.22);
-            text-transform: uppercase;
-        }
-
-        .footer-dots {
-            display: flex;
-            gap: 4px;
-        }
-
-        .footer-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .footer-dot:nth-child(2) {
-            background: rgba(107, 63, 160, 0.5);
-        }
-
-        /* ── Action buttons ── */
+        /* ── Actions ── */
         .actions {
             position: fixed;
-            bottom: 2rem;
-            right: 2rem;
+            bottom: 3rem;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            gap: 10px;
-            z-index: 100;
+            gap: 1.5rem;
+            z-index: 1000;
         }
 
-        .btn-print {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--cream);
-            color: var(--ink);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 0.14em;
+        .btn {
+            padding: 16px 36px;
+            border-radius: 100px;
+            font-weight: 800;
+            font-size: 14px;
             text-transform: uppercase;
-            font-weight: 700;
-            padding: 14px 24px;
-            border-radius: 40px;
-            border: none;
+            letter-spacing: 0.2em;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-            transition: transform .15s, box-shadow .15s;
-        }
-
-        .btn-print:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(12px);
         }
 
         .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.07);
-            color: rgba(255, 255, 255, 0.65);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            font-weight: 700;
-            padding: 14px 20px;
-            border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            cursor: pointer;
-            transition: background .15s;
+            background: linear-gradient(135deg, var(--iris-violet) 0%, #4338ca 100%);
+            color: #fff;
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .btn-back:hover {
-            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 20px 45px rgba(99, 102, 241, 0.6);
+            filter: brightness(1.1);
+        }
+
+        .btn-print {
+            background: rgba(255, 255, 255, 0.95);
+            color: #020617;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-print:hover {
+            transform: translateY(-5px) scale(1.05);
+            background: #fff;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        /* ── Price Table ── */
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            font-size: 10px;
+            padding: 5px 0;
+            border-bottom: 1px dashed #f1f5f9;
+            gap: 12px;
+        }
+
+        .price-row span:first-child {
+            flex: 1;
+            line-height: 1.2;
+        }
+
+        .price-row span:last-child {
+            text-align: right;
+            white-space: nowrap;
+            font-family: 'Monaco', 'Consolas', monospace;
+            letter-spacing: -0.02em;
+        }
+
+        .price-row:last-child {
+            border-bottom: none;
         }
 
         /* ── Responsive ── */
-        @media (max-width: 700px) {
-            .ticket-body {
-                grid-template-columns: 1fr;
-            }
-
-            .ticket-main {
-                border-right: none;
-                border-bottom: 1px dashed var(--divider);
-            }
-
-            .ticket-header {
-                flex-direction: column;
+        @media (max-width: 1024px) {
+            body {
+                padding: 1rem;
+                padding-bottom: 8rem;
                 align-items: flex-start;
             }
 
-            .header-locator {
-                text-align: left;
+            .card {
+                width: 100%;
+                max-width: 600px;
+                flex-direction: column;
+                border-radius: 30px;
+                margin: 0 auto;
             }
 
-            .flight-code {
-                font-size: 1.8rem;
+            .card-main {
+                padding: 2rem;
+            }
+
+            .card-stub {
+                width: 100%;
+                border-left: none;
+                border-top: 2px dashed #e2e8f0;
+                padding: 2rem;
+            }
+
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
+            }
+
+            .path {
+                margin: 2rem 0;
+            }
+
+            .actions {
+                bottom: 1.5rem;
+                width: 90%;
+                justify-content: center;
+            }
+
+            .btn {
+                padding: 12px 24px;
+                font-size: 12px;
+                flex: 1;
+                justify-content: center;
             }
         }
 
-        /* ── Print ── */
+        @media (max-width: 640px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .city-code {
+                font-size: 2rem;
+            }
+        }
+
         @media print {
-            .actions {
-                display: none;
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .actions, .breathing-bg { display: none !important; }
+            body { background: #fff !important; padding: 0 !important; color: #000 !important; }
+            .card { 
+                box-shadow: none !important; 
+                border: 2px solid #000 !important; 
+                border-radius: 0 !important; 
+                width: 100% !important; 
+                flex-direction: row !important;
+                margin: 0 !important;
             }
-
-            body {
-                background: #fff;
-                padding: 0;
+            .card-main { padding: 2rem !important; }
+            .card-stub { 
+                width: 250px !important; 
+                border-left: 2px dashed #000 !important; 
+                border-top: none !important;
+                background: #fcfcfc !important;
+                padding: 1rem !important;
             }
-
-            .ticket {
-                box-shadow: none;
-                border-radius: 0;
-            }
+            .bg-white, .bg-slate-50 { background: #fff !important; border: 1px solid #eee !important; }
+            .bg-slate-900 { background: #fff !important; border: 2px solid #000 !important; color: #000 !important; padding: 1.5rem !important; }
+            .bg-slate-900 * { color: #000 !important; }
+            .text-slate-500, .text-slate-400 { color: #555 !important; }
+            .spaceship-icon svg { color: #000 !important; }
         }
     </style>
 </head>
 
 <body>
-    <div class="ticket-shell">
-        <div class="ticket">
+    <div class="breathing-bg"></div>
 
-            {{-- ── Header ── --}}
-            <div class="ticket-header">
-                <div class="header-logo-wrap">
-                    <img src="/assets/logo_iris.png" alt="IRIS">
-                    <div class="header-tagline">Iris Aerospace</div>
+    <div class="card">
+
+        <div class="card-main">
+            <div class="header">
+                <div class="logo-wrap">
+                    <img src="/assets/logo_iris_black.png" class="logo-img" alt="IRIS">
+                    <span class="brand-name">IRIS AEROSPACE</span>
                 </div>
-                <div class="header-locator">
-                    <div class="locator-label">Localizador de Reserva</div>
-                    <div class="locator-code">{{ strtoupper($res->id_locator) }}</div>
-                    <div class="mt-1">
-                        <span class="locator-badge">
-                            <svg width="6" height="6" viewBox="0 0 8 8" fill="none">
-                                <circle cx="4" cy="4" r="3" fill="currentColor" opacity="0.6" />
+                <div class="doc-id">RESERVA #{{ str_pad($res->id, 4, '0', STR_PAD_LEFT) }}</div>
+            </div>
+
+            <div class="path">
+                <div class="node">
+                    <div class="city-code">{{ strtoupper(substr($res->spaceFlight?->origin?->name ?? 'ORG', 0, 3)) }}
+                    </div>
+                    <div class="city-name">{{ $res->spaceFlight?->origin?->name }}</div>
+                </div>
+                <div class="path-line">
+                    <div class="spaceship-icon">
+                        <svg style="width:20px; height:20px;" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="node">
+                    <div class="city-code" style="color: var(--iris-violet);">
+                        {{ strtoupper(substr($res->spaceFlight?->destination?->name ?? 'DST', 0, 3)) }}
+                    </div>
+                    <div class="city-name">{{ $res->spaceFlight?->destination?->name }}</div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="item">
+                    <label>Fecha de Salida</label>
+                    <value>{{ $res->spaceFlight?->departure_date?->format('d M, Y') }}</value>
+                </div>
+                <div class="item">
+                    <label>Hora de Embarque</label>
+                    <value>{{ $res->spaceFlight?->departure_date?->subMinutes(45)->format('H:i') }}</value>
+                </div>
+                <div class="item">
+                    <label>Clase de Vuelo</label>
+                    <value>{{ strtoupper($res->seat_type) }}</value>
+                </div>
+                <div class="item">
+                    <label>Unidad de Transporte</label>
+                    <value>{{ $res->spaceFlight?->flight_code }}</value>
+                </div>
+                <div class="item">
+                    <label>Asiento Asignado</label>
+                    <value style="color: var(--iris-violet);">{{ $res->seat_number ?: 'A1-B' }}</value>
+                </div>
+                <div class="item">
+                    <label>Estado de Reserva</label>
+                    <value style="color: {{ 
+                        match($res->status) {
+                            'Confirmada', 'Confirmed' => '#10b981',
+                            'Pendiente', 'Pending' => '#f59e0b',
+                            'Cancelada', 'Cancelled' => '#ef4444',
+                            default => '#64748b'
+                        }
+                    }};">{{ strtoupper($res->status) }}</value>
+                </div>
+            </div>
+
+            {{-- Administrative Info Section --}}
+            <div class="py-10 border-t border-slate-100">
+                <div class="mb-8 flex items-center gap-4">
+                    <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Información Administrativa</h4>
+                    <div class="h-px flex-1 bg-slate-100"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    {{-- Client Block --}}
+                    <div>
+                        <h5 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-tight">Titular de la Reserva (Comprador)</h5>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[8px] font-black text-slate-400 uppercase mb-1">Nombre Completo</label>
+                                <div class="text-[14px] font-bold text-slate-800">{{ $res->user?->name }} {{ $res->user?->primarylastname }} {{ $res->user?->secondarylastname }}</div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-[8px] font-black text-slate-400 uppercase mb-1">Contacto Email</label>
+                                    <div class="text-[12px] font-semibold text-slate-600 truncate">{{ $res->user?->email }}</div>
+                                </div>
+                                <div>
+                                    <label class="block text-[8px] font-black text-slate-400 uppercase mb-1">Teléfono Titular</label>
+                                    <div class="text-[12px] font-bold text-slate-800">{{ $res->user?->phone ?: 'No registrado' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Passenger Block --}}
+                    <div>
+                        <h5 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-tight">Información del Pasajero (Viajero)</h5>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[8px] font-black text-slate-400 uppercase mb-1">Nombre Completo del Viajero</label>
+                                <div class="text-[14px] font-bold text-slate-800">{{ $res->passenger?->full_name ?: $res->user?->name }}</div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-[8px] font-black text-slate-400 uppercase mb-1">Identificación (ID)</label>
+                                    <div class="text-[12px] font-semibold text-slate-600">{{ $res->passenger?->document_number ?: 'N/A' }}</div>
+                                </div>
+                                <div>
+                                    <label class="block text-[8px] font-black text-slate-400 uppercase mb-1">Teléfono Pasajero</label>
+                                    <div class="text-[12px] font-bold text-slate-800">{{ $res->passenger?->phone ?? $res->user?->phone ?? 'No registrado' }}</div>
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-[8px] font-black text-indigo-400 uppercase mb-1">Pasaporte Espacial Iris</label>
+                                    <div class="text-[12px] font-bold text-indigo-600">{{ $res->passenger?->iris_passport_number ?: 'GESTIÓN PENDIENTE' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Compliance & Status --}}
+            <div class="py-10 border-t border-slate-100">
+                <div class="mb-6 flex items-center gap-4">
+                    <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Estado de Cumplimiento
+                    </h4>
+                    <div class="h-px flex-1 bg-slate-100"></div>
+                </div>
+
+                {{-- Critical Alerts --}}
+                @if(!$res->passenger?->isFlightReady())
+                    <div class="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
-                            Documento Oficial
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-black text-amber-800 uppercase tracking-tight">Acciones Pendientes
+                                Requeridas</p>
+                            <p class="text-[10px] text-amber-700 leading-relaxed mt-1">
+                                Este pasajero no cumple con todos los requisitos para el despegue. Recuerde que el
+                                **Pasaporte Espacial** y el **Iris Training** deben estar verificados al menos 72h antes del
+                                lanzamiento para evitar la cancelación automática.
+                            </p>
+                        </div>
+                    </div>
+                @endif
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                    <div
+                        class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl transition-all hover:bg-slate-100/80">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-2.5 h-2.5 rounded-full {{ $res->passenger?->hasValidPassport() ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' }}">
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-800">Pasaporte Espacial</p>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-tighter">
+                                    {{ $res->passenger?->iris_passport_number ?: 'Gestión en curso' }}
+                                </p>
+                            </div>
+                        </div>
+                        <span
+                            class="text-[9px] font-black px-2 py-1 rounded bg-white {{ $res->passenger?->hasValidPassport() ? 'text-emerald-600' : 'text-amber-600' }}">
+                            {{ $res->passenger?->hasValidPassport() ? 'VERIFICADO' : 'PENDIENTE' }}
+                        </span>
+                    </div>
+
+                    <div
+                        class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl transition-all hover:bg-slate-100/80">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-2.5 h-2.5 rounded-full {{ $res->passenger?->hasValidTraining() ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' }}">
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-800">Iris Training Certificate</p>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-tighter">
+                                    {{ $res->passenger?->training_certificate_date ? 'Apto desde ' . $res->passenger->training_certificate_date->format('d/m/Y') : 'Certificación Pendiente' }}
+                                </p>
+                            </div>
+                        </div>
+                        <span
+                            class="text-[9px] font-black px-2 py-1 rounded bg-white {{ $res->passenger?->hasValidTraining() ? 'text-emerald-600' : 'text-amber-600' }}">
+                            {{ $res->passenger?->hasValidTraining() ? 'APTO' : 'PENDIENTE' }}
+                        </span>
+                    </div>
+
+                    @if($res->logistics?->hotel_id)
+                        <div
+                            class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl transition-all hover:bg-slate-100/80">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-800">Alojamiento (Hotel)</p>
+                                    <p class="text-[9px] text-slate-500 uppercase tracking-tighter">
+                                        {{ $res->logistics->hotel->name }} • {{ $res->logistics->hotel_nights }} Noches
+                                    </p>
+                                </div>
+                            </div>
+                            <span
+                                class="text-[9px] font-black px-2 py-1 rounded bg-white text-emerald-600">CONFIRMADO</span>
+                        </div>
+                    @endif
+
+                    @if($res->logistics?->terrestrial_flight_id)
+                        <div
+                            class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl transition-all hover:bg-slate-100/80">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-800">Conexión Terrestre</p>
+                                    <p class="text-[9px] text-slate-500 uppercase tracking-tighter">
+                                        {{ $res->logistics->terrestrialFlight->originLocation->name }} →
+                                        {{ $res->logistics->terrestrialFlight->destinationLocation->name }}
+                                    </p>
+                                </div>
+                            </div>
+                            <span
+                                class="text-[9px] font-black px-2 py-1 rounded bg-white text-emerald-600">CONFIRMADO</span>
+                        </div>
+                    @endif
+
+                    <div
+                        class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl transition-all hover:bg-slate-100/80">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-2.5 h-2.5 rounded-full {{ $res->logistics?->refund_insurance_included ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-slate-300' }}">
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-800">Seguro de Reembolso</p>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-tighter">
+                                    {{ $res->logistics?->refund_insurance_included ? 'Cobertura de Cancelación Activa' : 'Cobertura No Contratada' }}
+                                </p>
+                            </div>
+                        </div>
+                        <span
+                            class="text-[9px] font-black px-2 py-1 rounded bg-white {{ $res->logistics?->refund_insurance_included ? 'text-indigo-600' : 'text-slate-400' }}">
+                            {{ $res->logistics?->refund_insurance_included ? 'INCLUIDO' : 'N/A' }}
+                        </span>
+                    </div>
+
+                    <div
+                        class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl transition-all hover:bg-slate-100/80">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-2.5 h-2.5 rounded-full {{ $res->payment_status === 'paid' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500' }}">
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-800">Estado de Pago</p>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-tighter">
+                                    {{ $res->payment_status === 'paid' ? 'Pagado' : 'Pendiente de Pago' }}
+                                </p>
+                            </div>
+                        </div>
+                        <span
+                            class="text-[9px] font-black px-2 py-1 rounded bg-white {{ $res->payment_status === 'paid' ? 'text-emerald-600' : 'text-rose-600' }}">
+                            {{ strtoupper($res->payment_status) }}
                         </span>
                     </div>
                 </div>
             </div>
 
-            {{-- ── Flight strip ── --}}
-            <div class="flight-strip">
-                <div class="flight-endpoint">
-                    <div class="flight-code">{{ $res->spaceFlight?->flight_code }}</div>
-                    <div class="flight-city">{{ $res->spaceFlight?->origin?->name }} —
-                        {{ $res->spaceFlight?->destination?->name }}</div>
-                </div>
-                <div class="flight-arrow">
-                    <div class="flight-line">
-                        <div class="flight-line-inner"></div>
-                    </div>
-                    <div class="flight-num">Vuelo {{ $res->spaceFlight?->flight_code }} &nbsp;·&nbsp;
-                        {{ $res->spaceFlight?->departure_date?->format('d M Y') }}
-                    </div>
-                </div>
-                <div class="flight-endpoint" style="text-align:right">
-                    <div class="flight-code">
-                        {{ strtoupper(substr($res->spaceFlight?->destination?->name ?? 'DST', 0, 3)) }}
-                    </div>
-                    <div class="flight-city">{{ $res->spaceFlight?->destination?->name }}</div>
-                </div>
-            </div>
-
-            {{-- ── Body ── --}}
-            <div class="ticket-body">
-
-                {{-- Main column --}}
-                <div class="ticket-main">
-
-                    {{-- Pasajeros --}}
-                    <div class="section-label">Pasajero</div>
-                    <div class="passenger-name">{{ $res->user?->name }}</div>
-                    <div class="passenger-email">{{ $res->user?->email }}</div>
-                    <div class="badge-row">
-                        <span class="badge badge-violet">ID #{{ $res->user?->id }}</span>
-                        @if($res->discount_applied)
-                            <span class="badge badge-emerald">✦ Certified Space Traveler</span>
-                        @endif
-                    </div>
-
-                    {{-- Detalles vuelo --}}
-                    <div class="section-label" style="margin-top:1.75rem">Detalles del Vuelo</div>
-                    <div class="details-grid">
-                        <div class="detail-item">
-                            <div class="detail-key">Origen</div>
-                            <div class="detail-val">Base de Lanzamiento</div>
-                            <div class="detail-sub">{{ $res->spaceFlight?->origin?->name }}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-key">Destino</div>
-                            <div class="detail-val">Base de Aterrizaje</div>
-                            <div class="detail-sub">{{ $res->spaceFlight?->destination?->name }}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-key">Fecha de Salida</div>
-                            <div class="detail-val">{{ $res->spaceFlight?->departure_date?->format('d M Y') }}</div>
-                            <div class="detail-sub">Vuelo · {{ $res->spaceFlight?->flight_code }}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-key">Cabina / Asiento</div>
-                            <div class="detail-val detail-val-accent">{{ strtoupper($res->seat_type) }}</div>
-                            <div class="detail-sub">SEAT: {{ $res->seat_number ?: 'TBA' }}</div>
-                        </div>
-                    </div>
-
-                    {{-- Logística --}}
-                    @if($res->logistics)
-                        <div class="section-label" style="margin-top:1.75rem">Servicios Incluidos</div>
-                        <div>
-                            @if($res->logistics->hotel)
-                                <div class="logistics-item">
-                                    <div class="logistics-icon" style="color:#db2777">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="logistics-name">{{ $res->logistics->hotel->name }}</div>
-                                        <div class="logistics-sub">{{ $res->logistics->hotel_nights }} noches incluidas</div>
-                                    </div>
-                                </div>
-                            @endif
-
-                            @if($res->logistics->terrestrialFlight)
-                                <div class="logistics-item">
-                                    <div class="logistics-icon" style="color:#d97706">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="logistics-name">Vuelo Terrestre</div>
-                                        <div class="logistics-sub">
-                                            {{ $res->logistics->terrestrialFlight->originLocation->name }} →
-                                            {{ $res->logistics->terrestrialFlight->destinationLocation->name }}
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-
-                            @if($res->logistics->training_included)
-                                <div class="logistics-item">
-                                    <div class="logistics-icon" style="color:#059669">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="logistics-name">Iris Training Complete</div>
-                                        <div class="logistics-sub">Programa de entrenamiento certificado</div>
-                                    </div>
-                                </div>
-                            @endif
-
-                            @if($res->logistics->vip_transfer_included)
-                                <div class="logistics-item">
-                                    <div class="logistics-icon" style="color:#b45309">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="logistics-name">Transfer VIP Iris Experience</div>
-                                        <div class="logistics-sub">Traslado exclusivo incluido</div>
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-                    @endif
-
+            {{-- Cancellation Policy --}}
+            <div class="px-12 py-10 bg-slate-900 text-white rounded-[20px]">
+                <div class="mb-8 flex items-center gap-4">
+                    <h4 class="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em]">Política de
+                        Cancelación y Reembolso</h4>
+                    <div class="h-px flex-1 bg-white/10"></div>
                 </div>
 
-                {{-- Stub column --}}
-                <div class="ticket-stub">
-
-                    {{-- QR --}}
-                    <div class="section-label">Código de Embarque</div>
-                    <div class="qr-wrap">
-                        <div class="qr-placeholder">
-                            <div class="qr-inner-text">QR generado<br>en mostrador<br>Iris</div>
-                        </div>
-                    </div>
-                    <div class="qr-hint">Escanee en el<br>mostrador Iris<br>Aerospace</div>
-
-                    {{-- Divider --}}
-                    <div style="margin: 1.5rem 0; border-top: 1px dashed var(--divider)"></div>
-
-                    {{-- Financiero --}}
-                    <div class="section-label">Resumen Financiero</div>
-                    @php $snapshot = $res->price_snapshot ?? []; @endphp
-
-                    <div style="display:flex; flex-direction:column; gap:8px;">
-                        <div class="fin-row">
-                            <span class="fin-label">Base fare & logística</span>
-                            <span
-                                class="fin-val">${{ number_format($snapshot['subtotal'] ?? $res->total_price, 2, ',', '.') }}</span>
-                        </div>
-                        @if($res->discount_applied)
-                            <div class="fin-row">
-                                <span class="fin-label fin-discount">S.T.C. Descuento (10%)</span>
-                                <span
-                                    class="fin-val fin-discount">−${{ number_format($snapshot['discount_amount'] ?? 0, 2, ',', '.') }}</span>
-                            </div>
-                        @endif
-                        <div style="border-top: 1px solid var(--divider); padding-top:10px; margin-top:4px;">
-                            <div class="fin-row">
-                                <span class="fin-total-label">Total Pagado</span>
-                                <span class="fin-total-val">${{ number_format($res->total_price, 2, ',', '.') }}</span>
-                            </div>
-                        </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 print:grid-cols-1 gap-10">
+                    <div class="space-y-6">
+                        <section>
+                            <h5 class="text-[10px] font-black text-white uppercase mb-2">1. Baremo de Reembolso (Seguro
+                                Activo)</h5>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">
+                                • <strong>+30 días:</strong> 90% de reembolso.<br>
+                                • <strong>30 a 7 días:</strong> 50% de reembolso.<br>
+                                • <strong>7 días a 72h:</strong> 10% de reembolso.<br>
+                                • <strong>
+                                    < 72h:</strong> Sin derecho a reembolso (0%).
+                            </p>
+                        </section>
+                        <section>
+                            <h5 class="text-[10px] font-black text-white uppercase mb-2">2. Cancelación por
+                                Incumplimiento</h5>
+                            <p class="text-[10px] text-slate-400 leading-relaxed italic">
+                                El pasajero debe disponer de Pasaporte e Iris Training 72h antes del despegue. El
+                                incumplimiento anulará la plaza automáticamente con retención del 100%.
+                            </p>
+                        </section>
+                        <section>
+                            <h5 class="text-[10px] font-black text-white uppercase mb-2">3. Ejecución y Plazos</h5>
+                            <p class="text-[10px] text-slate-400">Devolución automática al método original. Plazo: hasta
+                                30 días naturales.</p>
+                        </section>
                     </div>
 
-                    @if($res->payment_status === 'paid')
-                        <div class="payment-confirmed">✓ &nbsp; Pago Confirmado</div>
-                    @endif
-
-                </div>
-            </div>
-
-            {{-- ── Tear line ── --}}
-            <div class="tear-line">
-                <div class="tear-dots"></div>
-            </div>
-
-            {{-- ── Footer ── --}}
-            <div class="ticket-footer">
-                <div class="footer-text">IRIS Aerospace · Terminal 1, Spaceport America · iris.space</div>
-                <div class="footer-dots">
-                    <div class="footer-dot"></div>
-                    <div class="footer-dot"></div>
-                    <div class="footer-dot"></div>
+                    <div class="space-y-6">
+                        <section>
+                            <h5 class="text-[10px] font-black text-rose-400 uppercase mb-2">4. Servicios No
+                                Reembolsables</h5>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">
+                                Vuelos Terrestres (Conexiones) y Alojamiento Externo (Hoteles) no admiten devolución una
+                                vez confirmados.
+                            </p>
+                        </section>
+                        <section>
+                            <h5 class="text-[10px] font-black text-white uppercase mb-2">5. Casos Especiales</h5>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">
+                                Iris Training y Gestión de Pasaporte no se reembolsarán si el proceso ya ha sido
+                                iniciado, aprobado o realizado.
+                            </p>
+                        </section>
+                        <section class="p-4 border border-indigo-500/30 bg-indigo-500/5 rounded-xl">
+                            <h5 class="text-[10px] font-black text-indigo-300 uppercase mb-2">6. Garantía Iris Aerospace
+                            </h5>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">
+                                Reembolso del 100% o reubicación gratuita solo por motivos técnicos de Iris Aerospace o
+                                meteorología espacial adversa.
+                            </p>
+                        </section>
+                    </div>
                 </div>
             </div>
 
         </div>
+
+        <div class="card-stub">
+            {{-- Unified Header Block --}}
+            <div
+                class="w-full bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm flex flex-col items-center">
+                <div class="qr-placeholder mb-6">
+                    <svg class="w-full h-full text-slate-200" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8-h8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 0h2v3h-2v-3zm3 3h3v2h-3v-2zm-3 0h2v3h-2v-3zm3 3h3v2h-3v-2z" />
+                    </svg>
+                </div>
+
+                <div class="locator-wrap">
+                    <div class="locator-label">Localizador</div>
+                    <div class="locator-val">{{ strtoupper($res->id_locator) }}</div>
+                </div>
+            </div>
+
+            {{-- Registry & Client Block --}}
+            <div class="w-full mt-6 bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm">
+                <div class="pass-label">Titular de la Reserva</div>
+                <div class="pass-name truncate">{{ $res->user?->name }}</div>
+                <div style="font-size: 9px; color: var(--text-gray); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Registry: #{{ str_pad($res->user_id, 6, '0', STR_PAD_LEFT) }}</div>
+            </div>
+
+            {{-- Detailed Passenger Info --}}
+            <div class="w-full mt-6 bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm text-left">
+                <div class="pass-label mb-3">Datos del Pasajero</div>
+                
+                <div class="mb-3">
+                    <div style="font-size: 8px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Nombre Completo</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #1e293b;">{{ $res->passenger?->full_name ?: $res->user?->name }}</div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <div style="font-size: 8px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Identidad (ID)</div>
+                        <div style="font-size: 10px; font-weight: 600; color: #334155;">{{ $res->passenger?->document_number ?: 'N/A' }}</div>
+                    </div>
+                    <div class="flex-1">
+                        <div style="font-size: 8px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Pasaporte Iris</div>
+                        <div style="font-size: 10px; font-weight: 600; color: var(--iris-violet);">{{ $res->passenger?->iris_passport_number ?: 'PENDIENTE' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Price Breakdown Block --}}
+            <div class="w-full mt-6 bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm">
+                <div class="pass-label mb-4">Desglose de Facturación</div>
+
+                <div class="space-y-1 mb-6">
+                    @php
+                        $snap = $res->price_snapshot;
+                    @endphp
+                    @if($snap && is_array($snap))
+                        {{-- Vuelo Espacial --}}
+                        @if(($snap['space_flight_price'] ?? 0) > 0 || ($snap['space'] ?? 0) > 0)
+                            <div class="price-row">
+                                <span class="text-slate-500">Vuelo Espacial</span>
+                                <span
+                                    class="font-bold text-slate-700">{{ number_format($snap['space_flight_price'] ?? $snap['space'] ?? 0, 2) }}
+                                    €</span>
+                            </div>
+                        @endif
+
+                        {{-- Hotel --}}
+                        @if(($snap['hotel_price'] ?? 0) > 0 || ($snap['hotel'] ?? 0) > 0)
+                            <div class="price-row">
+                                <span class="text-slate-500">Alojamiento</span>
+                                <span
+                                    class="font-bold text-slate-700">{{ number_format($snap['hotel_price'] ?? $snap['hotel'] ?? 0, 2) }}
+                                    €</span>
+                            </div>
+                        @endif
+
+                        {{-- Terrestre --}}
+                        @if(($snap['terrestrial_price'] ?? 0) > 0 || ($snap['terrestrial'] ?? 0) > 0)
+                            <div class="price-row">
+                                <span class="text-slate-500">Conexión Terrestre</span>
+                                <span
+                                    class="font-bold text-slate-700">{{ number_format($snap['terrestrial_price'] ?? $snap['terrestrial'] ?? 0, 2) }}
+                                    €</span>
+                            </div>
+                        @endif
+
+                        {{-- Extras --}}
+                        @if(($snap['training_fee'] ?? 0) > 0 || ($snap['training'] ?? 0) > 0)
+                            <div class="price-row">
+                                <span class="text-slate-500">Iris Training</span>
+                                <span
+                                    class="font-bold text-slate-700">{{ number_format($snap['training_fee'] ?? $snap['training'] ?? 0, 2) }}
+                                    €</span>
+                            </div>
+                        @endif
+
+                        @if(($snap['passport_fee'] ?? 0) > 0 || ($snap['passport'] ?? 0) > 0)
+                            <div class="price-row">
+                                <span class="text-slate-500">Gestión Pasaporte</span>
+                                <span
+                                    class="font-bold text-slate-700">{{ number_format($snap['passport_fee'] ?? $snap['passport'] ?? 0, 2) }}
+                                    €</span>
+                            </div>
+                        @endif
+
+                        @if(($snap['vip_transfer_fee'] ?? 0) > 0 || ($snap['vip'] ?? 0) > 0)
+                            <div class="price-row">
+                                <span class="text-slate-500">Transfer VIP</span>
+                                <span
+                                    class="font-bold text-slate-700">{{ number_format($snap['vip_transfer_fee'] ?? $snap['vip'] ?? 0, 2) }}
+                                    €</span>
+                            </div>
+                        @endif
+
+                        @if(($snap['insurance_fee'] ?? 0) > 0 || ($snap['insurance'] ?? 0) > 0)
+                            <div class="price-row">
+                                <span class="text-slate-500">Seguro Cancelación</span>
+                                <span
+                                    class="font-bold text-slate-700">{{ number_format($snap['insurance_fee'] ?? $snap['insurance'] ?? 0, 2) }}
+                                    €</span>
+                            </div>
+                        @endif
+
+                        {{-- Descuentos / Ajustes --}}
+                        @if(($snap['discount_amount'] ?? 0) > 0 || ($snap['discount_amt'] ?? 0) > 0)
+                            <div class="price-row">
+                                <span class="text-emerald-600 font-bold">DTO Certificación</span>
+                                <span
+                                    class="font-bold text-emerald-600">-{{ number_format($snap['discount_amount'] ?? $snap['discount_amt'] ?? 0, 2) }}
+                                    €</span>
+                            </div>
+                        @endif
+
+                        @if(($snap['manual_adjustment_amount'] ?? 0) > 0 || ($snap['adj_amount'] ?? 0) > 0)
+                            <div class="price-row">
+                                <span class="text-indigo-600 font-bold">Ajuste Cortesía</span>
+                                <span
+                                    class="font-bold text-indigo-600">-{{ number_format($snap['manual_adjustment_amount'] ?? $snap['adj_amount'] ?? 0, 2) }}
+                                    €</span>
+                            </div>
+                        @endif
+                    @else
+                        <div class="price-row">
+                            <span class="text-slate-500">Vuelo Iris</span>
+                            <span class="font-bold text-slate-700">{{ number_format($res->total_price, 2) }} €</span>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="pt-4 border-t border-slate-100">
+                    <div class="pass-label">Precio Final</div>
+                    <div
+                        style="font-size: 20px; font-weight: 900; color: var(--iris-violet); font-family: 'Monaco', 'Consolas', monospace; letter-spacing: -0.04em;">
+                        {{ number_format($res->total_price, 2) }} €
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    {{-- Actions --}}
-    <div class="actions no-print">
-        <button class="btn-print" onclick="window.print()">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2m8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+    <div class="actions">
+        <button onclick="window.history.back()" class="btn btn-back">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Descargar
+            Volver
         </button>
-        <button class="btn-back" onclick="window.location.href='/admin/reservations'">
-            Cerrar
+        <button onclick="window.print()" class="btn btn-print">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Imprimir
         </button>
     </div>
-
 </body>
 
 </html>

@@ -1,185 +1,103 @@
-<div class="min-h-screen bg-gradient-to-b from-[#050505] to-[#19191c] text-zinc-300 p-4 md:p-8"
-    style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-    <div class="max-w-[1400px] mx-auto space-y-6">
+<div class="p-6 md:p-8 space-y-6 relative obsidian-bg min-h-screen text-[var(--text-primary)]" x-data="{ showScrollTop: false }"
+    @scroll.window="showScrollTop = window.pageYOffset > 300">
 
-        <!-- Header & Flash Message -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-rose-300 pb-4">
-            <div>
-                <h2 class="text-3xl font-bold text-rose-300 tracking-tight uppercase flex items-center gap-3">
-                    Hoteles
-                </h2>
-                <p class="text-zinc-400 text-sm mt-1 uppercase tracking-widest">
-                    Gestión de Hoteles terrestres
-                </p>
-            </div>
-
+    {{-- ══ HEADER ══ --}}
+    <div class="flex items-start justify-between border-b border-[var(--neon-rose)]/30 pb-4">
+        <div>
+            <h1 class="text-3xl font-black uppercase tracking-[0.15em] text-[var(--neon-rose)] flex items-center gap-3">
+                Hoteles
+            </h1>
+            <p class="font-mono-tech text-[11px] uppercase tracking-widest mt-1 text-[var(--text-secondary)]">
+                Gestión de Estancias Terrestres · {{ count($hotels) }} Registrados
+            </p>
+        </div>
+        <div class="flex items-center gap-4">
             @if (session()->has('message'))
-                <div
-                    class="mt-4 md:mt-0 bg-green-900/40 border border-green-700/50 text-green-400 px-4 py-2 text-sm font-medium uppercase tracking-wider rounded-[10px] flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    {{ session('message') }}
+                <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--neon-emerald)]/10 border border-[var(--neon-emerald)]/30">
+                    <div class="w-2 h-2 rounded-full bg-[var(--neon-emerald)]"></div>
+                    <span
+                        class="font-mono-tech text-[10px] text-[var(--neon-emerald)] uppercase tracking-widest">{{ session('message') }}</span>
                 </div>
             @endif
         </div>
+    </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-            <!-- Columna Izquierda: Lista y Filtros -->
-            <div class="lg:col-span-8 flex flex-col space-y-4 order-2 lg:order-1">
-
-                <!-- Buscador y Filtro -->
-                <div
-                    class="border border-zinc-700/50 bg-[#0f0f0f]/80 backdrop-blur-md p-4 flex flex-col sm:flex-row gap-4 justify-between items-center rounded-[10px] shadow-lg">
-                    <div class="relative w-full sm:w-2/3">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-                            <svg class="h-4 w-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                        </div>
-                        <input type="text" wire:model.live="search" placeholder="Buscar por Ciudad o ID"
-                            class="block w-full pl-10 bg-[#050505] border border-zinc-700/50 text-white placeholder-zinc-600 py-2 focus:outline-none focus:border-zinc-400 sm:text-sm transition-colors rounded-[10px]">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-y-4 md:gap-8 items-start md:grid-rows-[auto_auto_1fr]">
+        
+        <!-- Buscador y Filtro -->
+        <div class="md:col-span-3 md:col-start-1 md:row-start-1">
+            <div class="tech-card p-4 flex flex-col sm:flex-row gap-4 justify-between items-center rounded-xl">
+                <div class="relative w-full sm:w-2/3">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <svg class="h-4 w-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
                     </div>
-
-                    <div class="w-full sm:w-1/3 flex justify-end">
-                        <button wire:click="toggleSort"
-                            class="bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700/50 text-white px-4 py-2 sm:text-sm font-medium flex items-center gap-2 transition-colors w-full sm:w-auto justify-center rounded-[10px] tracking-widest uppercase text-xs">
-                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                @if($sortDir === 'asc')
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
-                                @else
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
-                                @endif
-                            </svg>
-                            Orden: {{ $sortDir === 'asc' ? 'A-Z' : 'Z-A' }}
-                        </button>
-                    </div>
+                    <input type="text" wire:model.live="search" placeholder="Búsqueda de hotel..."
+                        class="tech-input block w-full pl-10 py-2 focus:outline-none focus:border-[var(--neon-rose)] text-sm transition-colors rounded-lg">
                 </div>
 
-                <!-- Lista de Resultados -->
-                <div
-                    class="border border-zinc-700/50 bg-[#0f0f0f]/80 backdrop-blur-md rounded-[10px] shadow-lg overflow-hidden">
-                    <ul class="divide-y divide-zinc-800/80">
-                        @forelse($hotels as $hotel)
-                            <li
-                                class="p-4 hover:bg-zinc-800/50 transition-colors flex flex-col sm:flex-row justify-between sm:items-center gap-4 group">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-3 mb-2">
-                                        <span
-                                            class="text-xs font-mono text-zinc-500 bg-black px-2 py-0.5 rounded-[5px] border border-zinc-800">ID:{{ str_pad($hotel->id, 4, '0', STR_PAD_LEFT) }}</span>
-                                        <h4
-                                            class="text-lg font-bold text-white uppercase tracking-wide flex items-center gap-2">
-                                            {{ $hotel->name }}
-                                            <span class="text-rose-300 text-sm">|
-                                                {{ optional($hotel->location)->name ?? 'SIN UBICACIÓN' }}</span>
-                                        </h4>
-                                        <span class="flex gap-0.5 ml-1">
-                                            @for($i = 0; $i < $hotel->galactic_stars; $i++)
-                                                <svg class="w-4 h-4 text-rose-300" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path
-                                                        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z">
-                                                    </path>
-                                                </svg>
-                                            @endfor
-                                        </span>
-                                    </div>
-                                    <div class="flex flex-wrap gap-2">
-                                        <div
-                                            class="inline-flex items-center gap-1.5 text-xs font-mono text-rose-300 bg-rose-300/30 px-2 py-1 border border-rose-300/50 rounded-[5px]">
-                                            <svg class="w-3.5 h-3.5 text-rose-300" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                                                </path>
-                                            </svg>
-                                            TARIFA: ${{ number_format($hotel->price_per_night, 2) }}/noche
-                                        </div>
-                                        <div
-                                            class="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-300 bg-emerald-950/30 px-2 py-1 border border-emerald-900/50 rounded-[5px]">
-                                            <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
-                                                </path>
-                                            </svg>
-                                            Capacidad: {{ max(0, $hotel->total_rooms - $hotel->occupied_rooms) }}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div
-                                    class="flex sm:flex-col gap-2 shrink-0 border-t border-zinc-800/80 sm:border-0 pt-3 sm:pt-0">
-                                    <button type="button" wire:click="edit({{ $hotel->id }})"
-                                        class="flex-1 sm:flex-none px-4 py-1.5 bg-zinc-800 hover:bg-amber-900/50 hover:text-amber-400 text-zinc-300 text-xs font-bold uppercase tracking-wider transition-colors border border-zinc-700/50 hover:border-amber-400 rounded-[10px] flex items-center justify-center gap-2">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
-                                            </path>
-                                        </svg>
-                                        Editar
-                                    </button>
-                                    <button type="button" wire:click="confirmDelete({{ $hotel->id }})"
-                                        class="flex-1 sm:flex-none px-4 py-1.5 bg-black/50 hover:bg-red-950/50 text-red-500/80 hover:text-red-400 text-xs font-bold uppercase tracking-wider transition-colors border border-red-900/30 hover:border-red-900/80 rounded-[10px] flex items-center justify-center gap-2">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                            </path>
-                                        </svg>
-                                        Eliminar
-                                    </button>
-                                </div>
-                            </li>
-                        @empty
-                            <div class="p-12 text-center text-zinc-500">
-                                <svg class="w-10 h-10 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
-                                    </path>
-                                </svg>
-                                <p class="font-medium uppercase tracking-widest text-sm">No se han encontrado registros</p>
-                            </div>
-                        @endforelse
-                    </ul>
+                <div class="w-full sm:w-1/3 flex justify-end">
+                    <button type="button" wire:click="toggleSort"
+                        class="tech-input border border-[var(--border-glass)] px-4 py-2 text-xs font-mono-tech uppercase tracking-widest flex items-center gap-2 transition-colors w-full sm:w-auto justify-center rounded-lg hover:bg-[var(--tech-hover-bg)]">
+                        @if($sortDir === 'asc')
+                            <svg class="w-4 h-4 text-[var(--neon-rose)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
+                            </svg>
+                        @else
+                            <svg class="w-4 h-4 text-[var(--neon-rose)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
+                            </svg>
+                        @endif
+                        <span>Orden: {{ $sortDir === 'asc' ? 'A-Z' : 'Z-A' }}</span>
+                    </button>
                 </div>
             </div>
+        </div>
 
-            <!-- Formulario -->
-            <div class="lg:col-span-4 sticky top-6 order-1 lg:order-2">
-                <div
-                    class="border border-zinc-700/50 bg-[#0f0f0f]/80 backdrop-blur-md p-6 rounded-[10px] shadow-lg transition-colors duration-500 {{ $isEditing ? 'border-2 border-amber-500/80 shadow-[0_0_20px_rgba(168,85,247,0.05)]' : 'border-2 border-zinc-500' }}">
-                    <div class="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
-                        <h3
-                            class="text-sm font-bold uppercase tracking-widest flex items-center gap-2 {{ $isEditing ? 'text-amber-400' : 'text-white' }}">
+        <!-- Columna Derecha: Formulario -->
+        <div class="md:col-span-2 md:col-start-4 md:row-start-1 md:row-span-3 mt-4 md:mt-0" 
+            x-data="{ expanded: window.innerWidth >= 768 }" 
+            @resize.window="if(window.innerWidth >= 768) expanded = true">
+            
+            <div class="tech-card p-6 rounded-xl transition-all duration-500 relative overflow-hidden {{ $isEditing ? 'border-2 border-[var(--neon-amber)] shadow-[0_0_30px_rgba(245,158,11,0.1)]' : 'border-2 border-[var(--border-glass)]' }}">
+                @if($isEditing)
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--neon-amber)]/0 via-[var(--neon-amber)] to-[var(--neon-amber)]/0"></div>
+                @endif
+
+                <!-- Mobile Toggle -->
+                <button @click="expanded = !expanded" type="button" 
+                    class="w-full md:hidden flex justify-between items-center pb-4 mb-4 border-b border-[var(--border-glass)] font-black uppercase tracking-widest text-sm transition-colors {{ $isEditing ? 'text-[var(--neon-amber)]' : 'text-[var(--neon-rose)]' }}">
+                    <span x-text="expanded ? 'Ocultar Formulario' : '{{ $isEditing ? 'Continuar Edición' : 'Nuevo Hotel' }}'"></span>
+                    <svg :class="expanded ? 'rotate-180' : ''" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                <div x-show="expanded" x-transition>
+                    <div class="flex justify-between items-center mb-6 border-b border-[var(--border-glass)] pb-4 hidden md:flex">
+                        <h3 class="text-sm font-black uppercase tracking-[0.1em] flex items-center gap-2 {{ $isEditing ? 'text-[var(--neon-amber)]' : 'text-[var(--neon-rose)]' }}">
                             @if($isEditing)
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
                                     </path>
                                 </svg>
-                                Modo Edición
+                                Editando Hotel
                             @else
-                                <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 4v16m8-8H4"></path>
+                                <svg class="w-5 h-5 text-[var(--neon-rose)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                                 Nuevo Hotel
                             @endif
                         </h3>
-
                         @if($isEditing)
-                            <button type="button" wire:click="setCreateMode"
-                                class="text-[10px] uppercase font-bold tracking-widest bg-zinc-800/80 hover:bg-white hover:text-black text-zinc-300 px-2.5 py-1.5 transition-colors border border-zinc-700/50 rounded-[5px] flex items-center gap-1.5">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 4v16m8-8H4"></path>
-                                </svg>
-                                Crear
+                            <button type="button" wire:click="setCreateMode" 
+                                class="text-[10px] uppercase font-mono-tech tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1 transition-colors border border-[var(--border-glass)] hover:border-[var(--text-primary)]/20 rounded-lg flex items-center gap-1.5 bg-[var(--tech-hover-bg)]">
+                                Nuevo
                             </button>
                         @endif
                     </div>
@@ -187,168 +105,225 @@
                     <form wire:submit.prevent="confirmSave" class="space-y-4">
                         @if($isEditing)
                             <div>
-                                <label
-                                    class="block text-[10px] font-bold text-zinc-500 mb-1 uppercase tracking-widest flex items-center gap-1.5">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                                        </path>
-                                    </svg>
-                                    ID
+                                <label class="block text-[10px] font-mono-tech text-[var(--text-secondary)] mb-1 uppercase tracking-widest pl-1">
+                                    ID de Registro
                                 </label>
-                                <input type="text" value="{{ str_pad($hotelId, 4, '0', STR_PAD_LEFT) }}" readonly
-                                    class="w-full bg-[#050505] border border-zinc-800 px-3 py-2 text-zinc-600 font-mono text-sm cursor-not-allowed outline-none rounded-[10px]">
+                                <input type="text" value="{{ str_pad($hotelId, 4, '0', STR_PAD_LEFT) }}" readonly 
+                                    class="tech-input w-full px-3 py-2 text-[var(--text-secondary)] font-mono text-sm cursor-not-allowed outline-none rounded-lg opacity-60">
                             </div>
                         @endif
 
                         <div>
-                            <label
-                                class="block text-[10px] font-bold {{ $isEditing ? 'text-amber-400' : 'text-zinc-400' }} mb-1 uppercase tracking-widest flex items-center gap-1.5 transition-colors">
+                            <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1 text-[var(--text-secondary)]">
                                 Nombre del Hotel
                             </label>
                             <input type="text" wire:model="name"
-                                class="w-full bg-[#050505] border {{ $isEditing ? 'border-amber-900/40 focus:border-amber-500 text-amber-50' : 'border-zinc-700/50 focus:border-zinc-400 text-white' }} px-3 py-2 placeholder-zinc-700 focus:outline-none transition-colors text-sm rounded-[10px]">
-                            @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                class="tech-input w-full px-3 py-2 focus:outline-none transition-colors text-sm rounded-lg {{ $isEditing ? 'border-[var(--neon-amber)]/50 focus:border-[var(--neon-amber)]' : 'focus:border-[var(--neon-rose)]' }}">
+                            @error('name') <span class="text-[var(--neon-rose)] text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
-                            <label
-                                class="block text-[10px] font-bold {{ $isEditing ? 'text-amber-400' : 'text-zinc-400' }} mb-1 uppercase tracking-widest flex items-center gap-1.5 transition-colors">
-                                Ubicación
+                            <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1 text-[var(--text-secondary)]">
+                                Ubicación Destino
                             </label>
                             <select wire:model="location_id"
-                                class="w-full bg-[#050505] border {{ $isEditing ? 'border-amber-900/40 focus:border-amber-500 text-amber-50' : 'border-zinc-700/50 focus:border-zinc-400 text-white' }} px-3 py-2 focus:outline-none transition-colors text-sm rounded-[10px]">
+                                class="tech-input w-full px-3 py-2 focus:outline-none transition-colors text-sm rounded-lg cursor-pointer appearance-none {{ $isEditing ? 'border-[var(--neon-amber)]/50 focus:border-[var(--neon-amber)]' : 'focus:border-[var(--neon-rose)]' }}">
                                 <option value="">-- SELECCIONAR UBICACIÓN --</option>
                                 @foreach($locations as $loc)
                                     <option value="{{ $loc->id }}">{{ $loc->name }} ({{ $loc->code }})</option>
                                 @endforeach
                             </select>
-                            @error('location_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
-                            @enderror
+                            @error('location_id') <span class="text-[var(--neon-rose)] text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label
-                                    class="block text-[10px] font-bold {{ $isEditing ? 'text-amber-400' : 'text-zinc-400' }} mb-1 uppercase tracking-widest flex items-center gap-1.5 transition-colors">
-                                    Estrellas (1-5)
+                                <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1 text-[var(--text-secondary)]">
+                                    Estrellas
                                 </label>
                                 <input type="number" wire:model="galactic_stars" min="1" max="5"
-                                    class="w-full bg-[#050505] border {{ $isEditing ? 'border-amber-900/40 focus:border-amber-500 text-amber-50' : 'border-zinc-700/50 focus:border-zinc-400 text-white' }} px-3 py-2 placeholder-zinc-700 font-mono focus:outline-none transition-colors text-sm rounded-[10px]">
-                                @error('galactic_stars') <span
-                                class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    class="tech-input w-full px-3 py-2 font-mono focus:outline-none transition-colors text-sm rounded-lg {{ $isEditing ? 'border-[var(--neon-amber)]/50 focus:border-[var(--neon-amber)]' : 'focus:border-[var(--neon-rose)]' }}">
+                                @error('galactic_stars') <span class="text-[var(--neon-rose)] text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span> @enderror
                             </div>
 
                             <div>
-                                <label
-                                    class="block text-[10px] font-bold {{ $isEditing ? 'text-amber-400' : 'text-zinc-400' }} mb-1 uppercase tracking-widest flex items-center gap-1.5 transition-colors">
-                                    Precio / Noche ($)
+                                <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1 text-[var(--text-secondary)]">
+                                    Tarifa / Noche ($)
                                 </label>
                                 <input type="number" wire:model="price_per_night" step="0.01"
-                                    class="w-full bg-[#050505] border {{ $isEditing ? 'border-amber-900/40 focus:border-amber-500 text-amber-50' : 'border-zinc-700/50 focus:border-zinc-400 text-white' }} px-3 py-2 placeholder-zinc-700 font-mono focus:outline-none transition-colors text-sm rounded-[10px]">
-                                @error('price_per_night') <span
-                                class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    class="tech-input w-full px-3 py-2 font-mono focus:outline-none transition-colors text-sm rounded-lg {{ $isEditing ? 'border-[var(--neon-amber)]/50 focus:border-[var(--neon-amber)]' : 'focus:border-[var(--neon-rose)]' }}">
+                                @error('price_per_night') <span class="text-[var(--neon-rose)] text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
                         <div>
-                            <label
-                                class="block text-[10px] font-bold {{ $isEditing ? 'text-amber-400' : 'text-zinc-400' }} mb-1 uppercase tracking-widest flex items-center gap-1.5 transition-colors">
-                                Capacidad Total
+                            <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1 text-[var(--text-secondary)]">
+                                Capacidad de Habitaciones
                             </label>
                             <input type="number" wire:model="total_rooms"
-                                class="w-full bg-[#050505] border {{ $isEditing ? 'border-amber-900/40 focus:border-amber-500 text-amber-50' : 'border-zinc-700/50 focus:border-zinc-400 text-white' }} px-3 py-2 placeholder-zinc-700 font-mono focus:outline-none transition-colors text-sm rounded-[10px]">
-                            @error('total_rooms') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
-                            @enderror
+                                class="tech-input w-full px-3 py-2 font-mono focus:outline-none transition-colors text-sm rounded-lg {{ $isEditing ? 'border-[var(--neon-amber)]/50 focus:border-[var(--neon-amber)]' : 'focus:border-[var(--neon-rose)]' }}">
+                            @error('total_rooms') <span class="text-[var(--neon-rose)] text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span> @enderror
                         </div>
 
-                        <div class="pt-4 mt-2 border-t border-zinc-800">
-                            <button type="submit"
-                                class="w-full {{ $isEditing ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500' : 'bg-white hover:bg-zinc-200 text-black border-white' }} font-bold uppercase tracking-widest py-3 px-4 transition-colors text-xs rounded-[10px] border flex items-center justify-center gap-2">
-                                @if($isEditing)
-                                    Actualizar Datos
-                                @else
-                                    Añadir al Inventario
-                                @endif
+                        <div class="pt-4 mt-2 border-t border-[var(--border-glass)]">
+                            <button type="submit" 
+                                class="w-full font-mono-tech font-bold uppercase tracking-widest py-3 px-4 transition-all text-[11px] rounded-lg border flex items-center justify-center gap-2 {{ $isEditing ? 'bg-[var(--neon-amber)]/10 hover:bg-[var(--neon-amber)] text-[var(--neon-amber)] hover:text-black border-[var(--neon-amber)]/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-[var(--neon-rose)]/10 hover:bg-[var(--neon-rose)] text-[var(--neon-rose)] hover:text-black border-[var(--neon-rose)]/50 shadow-[0_0_15px_rgba(244,63,94,0.2)]' }}">
+                                {{ $isEditing ? 'Actualizar Hotel' : 'Registrar Nuevo Hotel' }}
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
+        </div>
 
+        <!-- Lista de Resultados -->
+        <div class="md:col-span-3 md:col-start-1 md:row-start-2 mt-4 md:mt-0">
+            <div class="tech-card rounded-xl overflow-hidden relative">
+                <ul class="divide-y divide-[var(--border-glass)]">
+                    @forelse($hotels as $hotel)
+                        <li wire:key="hotel-{{ $hotel->id }}"
+                            class="p-5 transition-colors flex flex-col sm:flex-row justify-between sm:items-center gap-4 group hover:bg-[var(--tech-hover-bg)]">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-1">
+                                    <span class="text-[10px] font-mono-tech text-[var(--neon-rose)] bg-[var(--neon-rose)]/10 px-2 py-0.5 rounded border border-[var(--neon-rose)]/20">
+                                        ID:{{ str_pad($hotel->id, 4, '0', STR_PAD_LEFT) }}
+                                    </span>
+                                    <h4 class="text-lg font-black uppercase tracking-wide flex items-center gap-2 group-hover:text-[var(--neon-rose)] transition-colors text-[var(--text-primary)]">
+                                        {{ $hotel->name }}
+                                    </h4>
+                                    <span class="flex gap-0.5 ml-1">
+                                        @for($i = 0; $i < $hotel->galactic_stars; $i++)
+                                            <svg class="w-3.5 h-3.5 text-[var(--neon-rose)]" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                            </svg>
+                                        @endfor
+                                    </span>
+                                </div>
+                                <p class="text-sm mb-3 text-[var(--text-secondary)] uppercase tracking-widest font-mono-tech flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-[var(--neon-rose)]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    {{ optional($hotel->location)->name ?? 'DESCONOCIDO' }}
+                                </p>
+                                
+                                <div class="flex flex-wrap gap-2">
+                                    <div class="inline-flex items-center gap-1.5 text-[10px] font-mono-tech px-3 py-1.5 border border-[var(--border-glass)] rounded-lg bg-[var(--tech-input-bg)] text-[var(--text-primary)]">
+                                        <svg class="w-3.5 h-3.5 text-[var(--neon-rose)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span class="text-[var(--text-secondary)] uppercase">Tarifa:</span>
+                                        <span class="text-[var(--neon-rose)] font-bold">${{ number_format($hotel->price_per_night, 2) }}</span>
+                                    </div>
+
+                                    <div class="inline-flex items-center gap-1.5 text-[10px] font-mono-tech px-3 py-1.5 border border-[var(--border-glass)] rounded-lg bg-[var(--tech-input-bg)] text-[var(--text-primary)]">
+                                        <svg class="w-3.5 h-3.5 text-[var(--neon-emerald)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                                        </svg>
+                                        <span class="text-[var(--text-secondary)] uppercase">Disponibilidad:</span>
+                                        <span class="{{ ($hotel->total_rooms - $hotel->occupied_rooms) > 5 ? 'text-[var(--neon-emerald)]' : 'text-[var(--neon-amber)]' }} font-bold">
+                                            {{ max(0, $hotel->total_rooms - $hotel->occupied_rooms) }} Libres
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex sm:flex-col gap-2 shrink-0 border-t border-[var(--border-glass)] sm:border-0 pt-4 sm:pt-0">
+                                <button type="button" wire:click="edit({{ $hotel->id }})" @click="expanded = true; window.scrollTo({top: 0, behavior: 'smooth'})"
+                                    class="p-2.5 rounded-lg border border-[var(--neon-amber)]/30 text-[var(--neon-amber)] hover:bg-[var(--neon-amber)] hover:text-black transition-colors" title="Editar">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                    </svg>
+                                </button>
+                                <button type="button" wire:click="confirmDelete({{ $hotel->id }})"
+                                    class="p-2.5 rounded-lg border border-[var(--neon-rose)]/30 text-[var(--neon-rose)] hover:bg-[var(--neon-rose)] hover:text-white transition-colors" title="Eliminar">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </li>
+                    @empty
+                        <div class="p-16 text-center text-[var(--text-secondary)]">
+                            <svg class="w-12 h-12 mx-auto mb-4 opacity-50 text-[var(--neon-rose)]" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                                </path>
+                            </svg>
+                            <p class="font-mono-tech uppercase tracking-widest text-sm">No se han encontrado hoteles registrados</p>
+                        </div>
+                    @endforelse
+                </ul>
+            </div>
         </div>
     </div>
 
-    <!-- Modal: Confirmar Guardar -->
+    <!-- Botón Subir Mobile -->
+    <button x-show="showScrollTop" x-transition @click="window.scrollTo({top: 0, behavior: 'smooth'})"
+        class="md:hidden fixed bottom-6 right-6 z-[90] w-12 h-12 rounded-full bg-[var(--neon-rose)] text-black flex items-center justify-center shadow-[0_0_20px_rgba(244,63,94,0.5)] border border-[var(--neon-rose)]/50 transition-transform active:scale-95">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+        </svg>
+    </button>
+
+    {{-- Modal Guardar --}}
     @if($showSaveModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <div class="bg-[#0f0f0f] border border-zinc-700/50 rounded-[15px] max-w-sm w-full overflow-hidden shadow-2xl"
-                @click.away="$wire.set('showSaveModal', false)">
-                <div class="p-6 border-b border-zinc-800 flex items-start gap-4">
-                    <div
-                        class="w-10 h-10 rounded-full {{ $isEditing ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-zinc-800 border-zinc-600 text-white' }} flex items-center justify-center border shrink-0">
+        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div class="tech-card border border-[var(--border-glass)] rounded-[15px] max-w-sm w-full overflow-hidden shadow-2xl bg-[var(--bg-panel)]/90 backdrop-blur-xl">
+                <div class="p-6 border-b border-[var(--border-glass)] flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full {{ $isEditing ? 'bg-[var(--neon-amber)]/10 border-[var(--neon-amber)]/30 text-[var(--neon-amber)]' : 'bg-[var(--neon-rose)]/10 border-[var(--neon-rose)]/30 text-[var(--neon-rose)]' }} flex items-center justify-center border shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4">
-                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-white uppercase tracking-widest mb-1">Confirmación</h3>
-                        <p class="text-zinc-500 text-xs leading-relaxed">
-                            {{ $isEditing ? 'Se actualizará el Hotel terrestre.' : 'Se guardará un nuevo Hotel.' }}
+                        <h3 class="text-sm font-bold uppercase tracking-widest mb-1 text-[var(--text-primary)]">
+                            {{ $isEditing ? 'Confirmar Actualización' : 'Confirmar Registro' }}
+                        </h3>
+                        <p class="text-xs leading-relaxed text-[var(--text-secondary)]">
+                            {{ $isEditing ? '¿Deseas guardar los cambios realizados en este hotel terrestre?' : '¿Confirmas el registro de este nuevo hotel?' }}
                         </p>
                     </div>
                 </div>
-                <div class="flex bg-[#050505] p-3 gap-3">
+                <div class="flex p-3 gap-3 bg-[var(--tech-input-bg)]/50 border-t border-[var(--border-glass)]">
                     <button type="button" wire:click="$set('showSaveModal', false)"
-                        class="flex-1 py-2.5 px-4 text-xs font-bold text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 rounded-[10px] border border-zinc-800 transition-colors">
+                        class="flex-1 py-2.5 px-4 text-xs font-bold uppercase rounded-[10px] border border-[var(--border-glass)] text-[var(--text-secondary)] hover:bg-[var(--tech-hover-bg)] hover:text-[var(--text-primary)] transition-colors">
                         Cancelar
                     </button>
                     <button type="button" wire:click="executeSave"
-                        class="flex-1 py-2.5 px-4 text-xs font-bold text-white {{ $isEditing ? 'bg-amber-600 hover:bg-amber-500' : 'bg-black border hover:bg-white hover:text-black' }} rounded-[10px] transition-colors">
-                        Ejecutar
+                        class="flex-1 py-2.5 px-4 text-xs font-bold uppercase text-black {{ $isEditing ? 'bg-[var(--neon-amber)] hover:bg-[var(--neon-amber)]/90' : 'bg-[var(--neon-rose)] hover:bg-[var(--neon-rose)]/90' }} rounded-[10px] shadow-lg transition-colors">
+                        Confirmar
                     </button>
                 </div>
             </div>
         </div>
     @endif
 
-    <!-- Modal: Confirmar Eliminar -->
+    {{-- Modal Eliminar --}}
     @if($showDeleteModal)
-        <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <div class="bg-[#0f0f0f] border border-red-900/50 rounded-[15px] max-w-sm w-full overflow-hidden shadow-[0_0_30px_rgba(220,38,38,0.1)]"
-                @click.away="$wire.set('showDeleteModal', false)">
-                <div class="p-6 border-b border-red-900/30 flex items-start gap-4">
-                    <div
-                        class="w-10 h-10 rounded-full bg-red-950/50 border border-red-900/50 text-red-500 flex items-center justify-center shrink-0">
+        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div class="tech-card border border-[var(--neon-rose)]/30 rounded-[15px] max-w-sm w-full overflow-hidden shadow-2xl bg-[var(--bg-panel)]/90 backdrop-blur-xl">
+                <div class="p-6 border-b border-[var(--neon-rose)]/10 flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-[var(--neon-rose)]/10 border border-[var(--neon-rose)]/30 text-[var(--neon-rose)] flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-red-500 uppercase tracking-widest mb-1">Confirmar Eliminar</h3>
-                        <p class="text-zinc-500 text-xs leading-relaxed">
-                            Si confirmas la eliminación, el registro de este Hotel desaparecerá de la base de datos.
-                            Esta acción es irreversible.
+                        <h3 class="text-sm font-bold text-[var(--neon-rose)] uppercase tracking-widest mb-1">Confirmar Eliminación</h3>
+                        <p class="text-xs leading-relaxed text-[var(--text-secondary)]">
+                            ¿Estás seguro de borrar este hotel <span class="font-bold text-[var(--text-primary)]">definitivamente</span>?
                         </p>
-                        <div class="mt-3 p-2 bg-blue-900/10 border border-blue-900/20 rounded-[8px]">
-                            <p class="text-[9px] text-blue-400 uppercase tracking-tighter leading-tight">
-                                <span class="font-bold underline">Sugerencia:</span> Antes considere cambiar el
-                                Estado Operativo o reducir el aforo.
-                            </p>
-                        </div>
                     </div>
                 </div>
-                <div class="flex bg-[#050505] p-3 gap-3">
+                <div class="flex p-3 gap-3 bg-[var(--tech-input-bg)]/50 border-t border-[var(--neon-rose)]/10">
                     <button type="button" wire:click="$set('showDeleteModal', false)"
-                        class="flex-1 py-2.5 px-4 text-xs font-bold text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 rounded-[10px] border border-zinc-800 transition-colors uppercase tracking-wider">
+                        class="flex-1 py-2 px-4 text-xs font-bold uppercase rounded-[10px] border border-[var(--border-glass)] text-[var(--text-secondary)] hover:bg-[var(--tech-hover-bg)] transition-colors">
                         Cancelar
                     </button>
                     <button type="button" wire:click="executeDelete"
-                        class="flex-1 py-2.5 px-4 text-xs font-bold text-white bg-red-900 hover:bg-red-800 rounded-[10px] transition-colors border border-red-900/50 uppercase tracking-wider">
+                        class="flex-1 py-2 px-4 text-xs font-bold text-white bg-[var(--neon-rose)] hover:bg-[var(--neon-rose)]/90 rounded-[10px] transition-all border border-[var(--neon-rose)] shadow-lg shadow-[rgba(244,63,94,0.3)]">
                         Eliminar
                     </button>
                 </div>
@@ -356,42 +331,36 @@
         </div>
     @endif
 
-    <!-- Modal: Confirmar Eliminar -->
+    {{-- Modal Cascada --}}
     @if($showConflictDeleteModal)
-        <div class="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
-            <div
-                class="bg-[#0f0f0f] border-2 border-red-600 rounded-[15px] max-w-md w-full overflow-hidden shadow-[0_0_50px_rgba(220,38,38,0.2)] animate-pulse-subtle">
-                <div class="p-6 border-b border-red-900/30 flex items-start gap-4">
-                    <div
-                        class="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(220,38,38,0.5)]">
+        <div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+            <div class="tech-card border-2 border-[var(--neon-rose)] rounded-[15px] max-w-md w-full overflow-hidden shadow-[0_0_50px_rgba(244,63,94,0.3)] bg-[var(--bg-panel)]/90 backdrop-blur-2xl">
+                <div class="p-6 border-b border-[var(--neon-rose)]/30 flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full bg-[var(--neon-rose)] text-white flex items-center justify-center shrink-0 shadow-lg shadow-[rgba(244,63,94,0.5)]">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-black text-red-500 uppercase tracking-tighter mb-1">Confirmar eliminar en
-                            Cascada</h3>
-                        <p class="text-zinc-300 text-sm leading-relaxed">
-                            Se han detectado <span class="text-white font-bold underline">{{ $reservationsCount }}
-                                reservas</span> vinculadas a este Hotel.
+                        <h3 class="text-lg font-black text-[var(--neon-rose)] uppercase tracking-tighter mb-1">
+                            Eliminación en Cascada
+                        </h3>
+                        <p class="text-sm leading-relaxed text-[var(--text-secondary)]">
+                            Se han detectado <span class="font-bold underline text-[var(--neon-rose)]">{{ $reservationsCount }} reservas activas</span> vinculadas.
                         </p>
-                        <p class="text-red-400/80 text-xs mt-2 italic font-medium">
-                            Si confirmas, las estancias serán canceladas y se notificará automáticamente al Gestor de
-                            Tierra.
+                        <p class="text-xs mt-2 italic text-[var(--neon-rose)]/80">
+                            Esta acción cancelará todas las estancias asociadas y notificará a los gestores de tierra.
                         </p>
                     </div>
                 </div>
-                <div class="flex bg-[#050505] p-4 gap-3 flex-col sm:flex-row">
+                <div class="flex p-4 gap-3 bg-[var(--tech-input-bg)]/50 border-t border-[var(--border-glass)]">
                     <button type="button" wire:click="$set('showConflictDeleteModal', false)"
-                        class="flex-1 py-3 px-4 text-xs font-bold text-zinc-400 bg-zinc-950 border border-zinc-800 rounded-[10px] uppercase tracking-widest">
+                        class="flex-1 py-3 px-4 text-xs font-bold uppercase tracking-widest rounded-[10px] border border-[var(--border-glass)] text-[var(--text-secondary)] hover:bg-[var(--tech-hover-bg)] transition-colors">
                         Cancelar
                     </button>
-
                     <button type="button" wire:click="deleteAndNotify"
-                        class="flex-1 py-3 px-4 text-xs font-bold text-white bg-red-600 hover:bg-red-500 rounded-[10px] uppercase tracking-widest shadow-lg shadow-red-900/40 transition-all">
-                        Eliminar
+                        class="flex-1 py-3 px-4 text-xs font-bold text-white bg-[var(--neon-rose)] hover:bg-[var(--neon-rose)]/90 rounded-[10px] uppercase tracking-widest shadow-lg shadow-[rgba(244,63,94,0.4)] border border-[var(--neon-rose)] transition-all">
+                        Confirmar
                     </button>
                 </div>
             </div>

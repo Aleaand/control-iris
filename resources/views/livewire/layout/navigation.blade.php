@@ -18,10 +18,21 @@ new class extends Component {
     openFinanzas: false, 
     openUser: false, 
     openUsuarios: false,
+    showLogoutModal: false,
     isCollapsed: localStorage.getItem('sidebar-collapsed') === null ? true : localStorage.getItem('sidebar-collapsed') === 'true',
+    isDarkMode: localStorage.getItem('theme') !== 'light',
     localTime: '',
     serverTime: '',
     diff: 0,
+    toggleTheme() {
+        this.isDarkMode = !this.isDarkMode;
+        localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
+        if (this.isDarkMode) {
+            document.documentElement.classList.remove('light-mode');
+        } else {
+            document.documentElement.classList.add('light-mode');
+        }
+    },
     updateClocks() {
         const now = new Date();
         this.localTime = now.toLocaleDateString('sv-SE') + ' ' + now.toLocaleTimeString('sv-SE');
@@ -51,21 +62,22 @@ new class extends Component {
 ">
 
     <!-- Mobile Header -->
-    <header
-        class="mobile-header md:hidden flex justify-between items-center px-4 py-3 bg-[#09090b] border-b border-white/5">
+    <header class="mobile-header md:hidden flex justify-between items-center px-4 py-3 border-b border-white/5"
+        style="background: var(--bg-obsidian)">
         <div class="flex items-center gap-3">
             <a href="{{ route('admin.dashboard') }}" wire:navigate>
-                <img src="{{ asset('assets/logo_iris.png') }}" alt="Iris" class="h-8 transition-transform duration-300"
-                    :class="openMobile ? 'scale-105' : ''">
+                <img :src="isDarkMode ? '{{ asset('assets/logo_iris.png') }}' : '{{ asset('assets/logo_iris_black.png') }}'"
+                    alt="Iris" class="h-8 transition-transform duration-300" :class="openMobile ? 'scale-105' : ''">
             </a>
             <div x-show="openMobile" x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 -translate-x-2" x-transition:enter-end="opacity-100 translate-x-0"
                 class="flex flex-col justify-center">
-                <span class="font-bold text-sm tracking-[0.2em] text-white leading-none">IRIS</span>
+                <span class="font-bold text-sm tracking-[0.2em] leading-none"
+                    style="color: var(--text-primary)">IRIS</span>
                 <span class="font-mono-tech text-[8px] text-cyan-500 mt-0.5">AEROSPACE</spanç>
             </div>
         </div>
-        <button @click="openMobile = !openMobile" class="text-white p-2">
+        <button @click="openMobile = !openMobile" class="p-2" style="color: var(--text-primary)">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path x-show="!openMobile" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 6h16M4 12h16m-7 6h7"></path>
@@ -86,15 +98,15 @@ new class extends Component {
         <!-- Header-->
         <div class="sidebar-header hidden md:block">
             <a href="{{ route('admin.dashboard') }}" wire:navigate class="logo-container group">
-                <img src="{{ asset('assets/logo_iris.png') }}" alt="Iris"
-                    class="logo-img group-hover:scale-105 transition-transform duration-500">
+                <img :src="isDarkMode ? '{{ asset('assets/logo_iris.png') }}' : '{{ asset('assets/logo_iris_black.png') }}'"
+                    alt="Iris" class="logo-img group-hover:scale-105 transition-transform duration-500">
                 <div class="logo-text" style="line-height: 1.2;" x-show="!isCollapsed"
                     x-transition:enter="transition ease-out duration-300"
                     x-transition:enter-start="opacity-0 -translate-x-4"
                     x-transition:enter-end="opacity-100 translate-x-0"
                     x-transition:leave="transition ease-in duration-700" x-transition:leave-start="opacity-100"
                     x-transition:leave-end="opacity-0">
-                    <span class="font-bold text-sm tracking-[0.2em] text-white">IRIS</span><br>
+                    <span class="font-bold text-sm tracking-[0.2em]" style="color: var(--text-primary)">IRIS</span><br>
                     <span class="font-mono-tech text-[8px] text-cyan-500">AEROSPACE</span>
                 </div>
             </a>
@@ -265,14 +277,16 @@ new class extends Component {
                         <img src="{{ auth()->user()->profile_photo_url }}" alt="{{ auth()->user()->name }}"
                             class="user-img">
                     @else
-                        <span class="text-white font-bold">{{ substr(auth()->user()->name, 0, 1) }}</span>
+                        <span class="font-bold"
+                            style="color: var(--text-primary)">{{ substr(auth()->user()->name, 0, 1) }}</span>
                     @endif
                 </div>
                 <div class="min-w-0 user-info" x-show="!isCollapsed"
                     x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
                     x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-700"
                     x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-                    <p class="text-xs font-bold text-white truncate">{{ auth()->user()->name }}</p>
+                    <p class="text-xs font-bold truncate" style="color: var(--text-primary)">{{ auth()->user()->name }}
+                    </p>
                     <p class="font-mono-tech text-[8px] text-zinc-500 uppercase">Rol Admin</p>
                 </div>
             </div>
@@ -284,11 +298,34 @@ new class extends Component {
                 class="user-dropdown-panel z-50"
                 :style="openUser ? (isCollapsed ? 'left: 85px; bottom: 24px;' : 'left: 85px; bottom: 24px;') : 'display: none;'">
                 <a href="{{ route('profile') }}" wire:navigate
-                    class="block px-4 py-3 text-xs text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg mb-1">
+                    class="block px-4 py-3 text-xs text-zinc-400 hover:text-[var(--text-primary)] hover:bg-white/5 rounded-lg mb-1 transition-colors">
                     Mi Perfil
                 </a>
+                <div @click="toggleTheme"
+                    class="w-full flex items-center justify-between px-4 py-3 text-xs text-zinc-400 hover:text-[var(--text-primary)] hover:bg-white/5 rounded-lg mb-1 transition-all cursor-pointer group/theme">
+                    <div class="flex items-center gap-3">
+                        <span x-text="isDarkMode ? 'Modo Día' : 'Modo Noche'"
+                            class="transition-colors group-hover/theme:text-[var(--text-primary)]"></span>
+                    </div>
+                    <div class="theme-switch" :class="{ 'active': !isDarkMode }">
+                        <div class="theme-switch-dot">
+                            <!-- Moon Icon (Dark Mode) -->
+                            <svg x-show="isDarkMode" class="theme-switch-icon text-zinc-900" fill="currentColor"
+                                viewBox="0 0 20 20">
+                                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                            </svg>
+                            <!-- Sun Icon (Light Mode) -->
+                            <svg x-show="!isDarkMode" class="theme-switch-icon text-white" fill="currentColor"
+                                viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
                 <div class="h-px bg-white/5 my-1"></div>
-                <button wire:click="logout"
+                <button @click="showLogoutModal = true; openUser = false"
                     class="w-full text-left px-4 py-3 text-xs text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors">
                     Cerrar Sesión
                 </button>
@@ -297,7 +334,6 @@ new class extends Component {
             <div class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center font-mono-tech text-[8px] text-zinc-600 sidebar-footer-details"
                 x-show="!isCollapsed">
                 <span>BD:<span x-text="serverTime"></span></span>
-                <span class="w-1 h-1 bg-zinc-800 rounded-full"></span>
                 <span>Local: <span x-text="localTime"></span></span>
             </div>
         </div>
@@ -305,4 +341,43 @@ new class extends Component {
 
     <div x-show="openMobile" @click="openMobile = false"
         class="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[90]"></div>
+
+    <!-- Logout Modal Técnico -->
+    <template x-teleport="body">
+        <div x-show="showLogoutModal" x-cloak class="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showLogoutModal = false" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"></div>
+            
+            <div class="tech-card p-8 w-full max-w-sm relative overflow-hidden" 
+                x-show="showLogoutModal" 
+                x-transition:enter="transition ease-out duration-300" 
+                x-transition:enter-start="opacity-0 scale-90" 
+                x-transition:enter-end="opacity-100 scale-100"
+                style="background: #0a0a0f; border-color: rgba(244, 63, 94, 0.2);">
+                
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent animate-pulse"></div>
+                
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 mb-6 border border-rose-500/20 shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    
+                    <h3 class="text-xl font-black text-rose-500 uppercase tracking-[0.2em] mb-3">Finalizar Mando</h3>
+                    <p class="font-mono-tech text-[10px] text-zinc-400 uppercase leading-relaxed mb-8">
+                        ¿Estás seguro de que deseas desconectar el enlace de mando actual?
+                    </p>
+                    
+                    <div class="flex gap-4 w-full">
+                        <button @click="showLogoutModal = false" class="flex-1 px-6 py-3 bg-zinc-900 text-zinc-400 font-bold text-[10px] uppercase tracking-widest rounded-xl border border-white/5 hover:bg-zinc-800 transition-all">
+                            Abortar
+                        </button>
+                        <button wire:click="logout" class="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.4)]">
+                            Confirmar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>

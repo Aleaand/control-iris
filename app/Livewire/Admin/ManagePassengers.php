@@ -6,9 +6,12 @@ use App\Models\Passenger;
 use App\Models\User;
 use App\Models\Location;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class ManagePassengers extends Component
 {
+    use WithPagination;
+
     // Filtro por cliente
     public $filterUserId = null;
     public $filterUserName = null;
@@ -198,7 +201,7 @@ class ManagePassengers extends Component
             });
         }
 
-        $passengers = $query->orderBy('name', $this->sortDir)->get();
+        $passengers = $query->orderBy('name', $this->sortDir)->paginate(10);
         $uniqueCountries = Location::whereNotNull('country_code')
             ->select('country_code')
             ->distinct()

@@ -7,6 +7,9 @@ use App\Models\Flight;
 use App\Models\Starship;
 use App\Models\Destination;
 use App\Models\PriceLog;
+use App\Models\Task;
+use App\Models\User;
+use App\Models\Reservation;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -58,6 +61,7 @@ class ManageFlights extends Component
     public $flightToDeleteCode = '';
     public $siblingCodeToDelete = '';
     public $missionHasReservations = false;
+    public $cancelReason = 'voluntary'; // technical | weather | voluntary
 
 
     public $mission_speed_au = 0;
@@ -988,6 +992,45 @@ class ManageFlights extends Component
                     reason: 'Actualización manual desde Administrador'
                 );
             }
+
+            // ── Detectar retraso de salida ─────────────────────────────────
+            $oldDeparture = $flight->departure_date ? Carbon::parse($flight->departure_date) : null;
+            $newDeparture = $this->departure_date ? Carbon::parse($this->departure_date) : null;
+            $isDelayed = $oldDeparture && $newDeparture && $newDeparture->gt($oldDeparture);
+
+            if ($isDelayed && $flight->reservations()->whereNotIn('status', ['Cancelada', 'Cancelled'])->exists()) {
+                $affectedGestors = $this->getAffectedGestors($flight->id);
+                $oldStr = $oldDeparture->format('d/m/Y H:i');
+                $newStr = $newDeparture->format('d/m/Y H:i');
+
+                foreach ($affectedGestors as $gestor) {
+                    $passengerNames = $flight->reservations()
+                        ->whereNotIn('status', ['Cancelada', 'Cancelled'])
+                        ->join('users', 'reservations.user_id', '=', 'users.id')
+                        ->where('users.assigned_manager_id', $gestor->id)
+                        ->pluck('users.name')
+                        ->unique()
+                        ->implode(', ');
+
+                    Task::create([
+                        'assigned_gestor_id' => $gestor->id,
+                        'created_by'         => auth()->id(),
+                        'title'              => "⏰ Retraso en Vuelo {$flight->flight_code} — Notifica a tus pasajeros",
+                        'description'        => "El vuelo {$flight->flight_code} ha cambiado su fecha de salida.\n\n📅 Fecha anterior: {$oldStr}\n📅 Nueva fecha: {$newStr}\n\nNotifica a tus pasajeros afectados: {$passengerNames}",
+                        'type'               => 'policy_change',
+                        'status'             => 'Pendiente',
+                        'priority'           => 'alta',
+                        'payload'            => [
+                            'flight_id'       => $flight->id,
+                            'flight_code'     => $flight->flight_code,
+                            'old_departure'   => $oldDeparture->toDateTimeString(),
+                            'new_departure'   => $newDeparture->toDateTimeString(),
+                        ],
+                    ]);
+                }
+            }
+            // ─────────────────────────────────────────────────────────────
+
             $flight->update($data);
 
             if ($this->status === 'landed') {
@@ -1204,6 +1247,21 @@ class ManageFlights extends Component
         }
     }
 
+    /**
+     * Returns the unique gestors who have clients with active reservations on a flight.
+     */
+    private function getAffectedGestors(int $flightId): \Illuminate\Database\Eloquent\Collection
+    {
+        $gestorIds = Reservation::where('flight_id', $flightId)
+            ->whereNotIn('status', ['Cancelada', 'Cancelled'])
+            ->join('users', 'reservations.user_id', '=', 'users.id')
+            ->whereNotNull('users.assigned_manager_id')
+            ->pluck('users.assigned_manager_id')
+            ->unique();
+
+        return User::whereIn('id', $gestorIds)->where('role', 'gestor')->get();
+    }
+
     public function cancelFlightAndNotify()
     {
         $flight = Flight::find($this->deleteId);
@@ -1218,21 +1276,80 @@ class ManageFlights extends Component
             }
 
             $outbound = $isReturn ? $siblingFlight : $flight;
-            $return = $isReturn ? $flight : $siblingFlight;
+            $return   = $isReturn ? $flight : $siblingFlight;
+
+            // Collect all affected flight IDs
+            $flightIds = collect([$outbound?->id, $return?->id])->filter()->values();
 
             if ($outbound) {
-                $outbound->reservations()->update(['status' => 'cancelled']);
+                $outbound->reservations()->update(['status' => 'Cancelada']);
                 $outbound->update(['status' => 'cancelled']);
             }
 
             if ($return) {
-                $return->reservations()->update(['status' => 'cancelled']);
+                $return->reservations()->update(['status' => 'Cancelada']);
                 $return->update(['status' => 'cancelled']);
             }
 
-            session()->flash('message', "Misión cancelada. Alerta enviada a Gestores de Vuelo y RRHH informada sobre tripulación.");
+            // ── Crear tareas automáticas a gestores afectados ──────────────
+            $affectedGestors = collect();
+            foreach ($flightIds as $fid) {
+                $affectedGestors = $affectedGestors->merge($this->getAffectedGestors($fid));
+            }
+            $affectedGestors = $affectedGestors->unique('id');
+
+            $cancelReasonLabel = match($this->cancelReason) {
+                'technical' => 'causa técnica de la nave/sistemas',
+                'weather'   => 'condiciones meteorológicas espaciales adversas',
+                default     => 'decisión administrativa',
+            };
+
+            $refundNote = match($this->cancelReason) {
+                'technical', 'weather' => 'Los clientes CON seguro de reembolso tienen derecho a reembolso 100% o reubicación gratuita. Gestiona las opciones con cada pasajero.',
+                default                => 'Aplica política estándar. Los clientes CON seguro recibirán reembolso según las condiciones de su póliza.',
+            };
+
+            $priority = ($this->cancelReason === 'technical' || $this->cancelReason === 'weather') ? 'urgente' : 'alta';
+            $flightCode = $outbound?->flight_code ?? $flight->flight_code;
+
+            foreach ($affectedGestors as $gestor) {
+                // Obtener pasajeros de este gestor afectados
+                $passengerNames = Reservation::whereIn('flight_id', $flightIds->toArray())
+                    ->whereNotIn('status', ['Cancelada', 'Cancelled'])
+                    ->join('users', 'reservations.user_id', '=', 'users.id')
+                    ->where('users.assigned_manager_id', $gestor->id)
+                    ->pluck('users.name')
+                    ->unique()
+                    ->implode(', ');
+
+                Task::create([
+                    'assigned_gestor_id' => $gestor->id,
+                    'created_by'         => auth()->id(),
+                    'title'              => "✈️ Vuelo {$flightCode} Cancelado — Gestiona a tus pasajeros",
+                    'description'        => "El vuelo {$flightCode} ha sido cancelado por {$cancelReasonLabel}.\n\n{$refundNote}\n\nPasajeros afectados de tu cartera: {$passengerNames}",
+                    'type'               => 'flight_cancelled',
+                    'status'             => 'Pendiente',
+                    'priority'           => $priority,
+                    'payload'            => [
+                        'flight_id'     => $outbound?->id,
+                        'flight_code'   => $flightCode,
+                        'cancel_reason' => $this->cancelReason,
+                    ],
+                ]);
+            }
+
+            $tasksCreated = $affectedGestors->count();
+            $msg = "Misión cancelada por {$cancelReasonLabel}.";
+            if ($tasksCreated > 0) {
+                $msg .= " Se han enviado {$tasksCreated} misión(es) a los gestores afectados.";
+            } else {
+                $msg .= " No hay gestores asignados a los pasajeros de este vuelo.";
+            }
+
+            session()->flash('message', $msg);
         }
 
+        $this->cancelReason = 'voluntary';
         $this->resetInputFields();
         $this->showConflictDeleteModal = false;
     }

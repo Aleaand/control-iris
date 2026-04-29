@@ -11,8 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsurePasswordChanged::class,
+        ]);
+
         $middleware->alias([
-            'role' => \App\Http\Middleware\CheckRole::class,
+            'role'                    => \App\Http\Middleware\CheckRole::class,
+            'ensure_password_changed' => \App\Http\Middleware\EnsurePasswordChanged::class,
         ]);
         // Stripe sends webhooks without a CSRF token — exclude it
         $middleware->validateCsrfTokens(except: [

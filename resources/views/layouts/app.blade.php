@@ -5,16 +5,28 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'Iris Aerospace') }}</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
+        <script>
+            function applyTheme() {
+                if (localStorage.getItem('theme') === 'light') {
+                    document.documentElement.classList.add('light-mode');
+                } else {
+                    document.documentElement.classList.remove('light-mode');
+                }
+            }
+            applyTheme();
+            document.addEventListener('livewire:navigated', applyTheme);
+        </script>
         @vite(['resources/css/app.css', 'resources/css/obsidian-design.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased obsidian-bg text-zinc-300 overflow-x-hidden" 
+    <body class="font-sans antialiased obsidian-bg overflow-x-hidden" 
+          style="color: var(--text-primary)"
           x-data="{ isSidebarCollapsed: localStorage.getItem('sidebar-collapsed') === 'true' }"
           @sidebar-toggle.window="isSidebarCollapsed = $event.detail">
         <div class="flex min-h-screen">
@@ -38,7 +50,9 @@
                 <main class="flex-1">
                     {{ $slot }}
                 </main>
+                </div>
             </div>
         </div>
     </body>
 </html>
+

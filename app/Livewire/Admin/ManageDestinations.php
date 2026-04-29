@@ -77,16 +77,16 @@ class ManageDestinations extends Component
         $this->isEditing = true;
         $dest = Destination::find($id);
         if ($dest) {
-            $this->destinationId   = $id;
-            $this->name            = $dest->name;
-            $this->description     = $dest->description;
-            $this->distance_au     = $dest->distance_au;
+            $this->destinationId = $id;
+            $this->name = $dest->name;
+            $this->description = $dest->description;
+            $this->distance_au = $dest->distance_au;
             $this->max_distance_au = $dest->max_distance_au;
-            $this->launch_fee      = $dest->launch_fee;
-            $this->landing_fee     = $dest->landing_fee;
+            $this->launch_fee = $dest->launch_fee;
+            $this->landing_fee = $dest->landing_fee;
         }
         $this->resetValidation();
-        $this->showSaveModal  = false;
+        $this->showSaveModal = false;
         $this->showDeleteModal = false;
     }
 
@@ -104,34 +104,34 @@ class ManageDestinations extends Component
     public function executeSave()
     {
         $this->validate([
-            'name'          => 'required|string|max:255',
-            'description'   => 'required|string|min:5',
-            'distance_au'   => 'required|numeric|min:0.01',
-            'max_distance_au' => 'required|numeric|min:0.01',
-            'launch_fee'    => 'required|numeric|min:0',
-            'landing_fee'   => 'required|numeric|min:0',
+            'name' => 'required|string|max:255',
+            'description' => 'required|string|min:5',
+            'distance_au' => 'required|numeric|min:0.01',
+            'max_distance_au' => 'nullable|numeric|min:0.01',
+            'launch_fee' => 'required|numeric|min:0',
+            'landing_fee' => 'required|numeric|min:0',
         ]);
         if ($this->isEditing && $this->destinationId) {
             $dest = Destination::find($this->destinationId);
             if ($dest) {
                 $dest->update([
-                    'name'            => $this->name,
-                    'description'     => $this->description,
-                    'distance_au'     => $this->distance_au,
+                    'name' => $this->name,
+                    'description' => $this->description,
+                    'distance_au' => $this->distance_au,
                     'max_distance_au' => $this->max_distance_au ?: null,
-                    'launch_fee'      => $this->launch_fee,
-                    'landing_fee'     => $this->landing_fee,
+                    'launch_fee' => $this->launch_fee,
+                    'landing_fee' => $this->landing_fee,
                 ]);
                 session()->flash('message', 'Destino actualizado con exito.');
             }
         } else {
             Destination::create([
-                'name'            => $this->name,
-                'description'     => $this->description,
-                'distance_au'     => $this->distance_au,
+                'name' => $this->name,
+                'description' => $this->description,
+                'distance_au' => $this->distance_au,
                 'max_distance_au' => $this->max_distance_au ?: null,
-                'launch_fee'      => $this->launch_fee,
-                'landing_fee'     => $this->landing_fee,
+                'launch_fee' => $this->launch_fee,
+                'landing_fee' => $this->landing_fee,
             ]);
             session()->flash('message', 'Nuevo destino registrado con éxito.');
         }

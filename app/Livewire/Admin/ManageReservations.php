@@ -3,12 +3,14 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use App\Models\Reservation;
 use App\Models\ReservationLogistic;
 use App\Models\User;
 use App\Models\Flight;
 use App\Models\Hotel;
 use App\Models\PriceLog;
+use App\Models\Task;
 use App\Models\TerrestrialFlight;
 use App\Models\Location;
 use Stripe\Stripe;
@@ -16,6 +18,8 @@ use Stripe\Checkout\Session as StripeSession;
 
 class ManageReservations extends Component
 {
+    use WithPagination;
+
     // ── Reserva Base ──────────────────────────────────────
     public $user_id;
     public $passenger_id;
@@ -1335,10 +1339,9 @@ class ManageReservations extends Component
             });
         }
 
-        // Mostramos una tarjeta por expedición. Mantenemos el unique por si el query trajo extras.
+        // Mostramos una tarjeta por expedición. 
         $reservations = $query->orderBy('created_at', $this->sortDir)
-            ->get()
-            ->unique('booking_group_id');
+            ->paginate(10);
 
         // Data for dropdowns
         $spaceFlights = Flight::with('destination')->where('departure_date', '>', now())->orderBy('departure_date')->get();
@@ -1770,8 +1773,8 @@ class ManageReservations extends Component
                 if ($res->payment_status === 'paid') {
                     // Cancelación parcial: solo esta fila
                     $res->update([
-                        'status'      => 'Cancelada',
-                        'seat_number' => null,
+                        'status'         => 'Cancelada',
+                        'seat_number'    => null,
                         'payment_status' => 'refunded',
                     ]);
 
@@ -1783,6 +1786,45 @@ class ManageReservations extends Component
                     $msg = $isMemberOfGroup
                         ? 'Pasajero cancelado del grupo. El resto de la expedición sigue activa.'
                         : 'Reserva PAGADA cancelada. El asiento ha sido liberado.';
+
+                    // ── Tarea automática al gestor del cliente ─────────────
+                    $cliente = $res->user;
+                    $gestorId = $cliente?->assigned_manager_id;
+                    $clientName = $cliente?->name ?? 'Cliente';
+                    $amount = number_format((float) $res->total_price, 2) . ' €';
+
+                    if ($gestorId) {
+                        $hasInsurance = $res->logistics?->refund_insurance_included ?? false;
+
+                        if ($hasInsurance) {
+                            // Tiene seguro → gestionar reembolso
+                            Task::create([
+                                'assigned_gestor_id' => $gestorId,
+                                'created_by'         => auth()->id(),
+                                'title'              => "💳 Gestionar Reembolso — {$clientName}",
+                                'description'        => "La reserva de {$clientName} (importe: {$amount}) ha sido cancelada.\n\nEl cliente TIENE seguro de reembolso. Contacta con el cliente para tramitar el reembolso según las condiciones de su póliza.\n\nReserva ID: #{$res->id}",
+                                'type'               => 'passenger_issue',
+                                'status'             => 'Pendiente',
+                                'priority'           => 'urgente',
+                                'payload'            => ['reservation_id' => $res->id, 'client_name' => $clientName, 'amount' => $res->total_price, 'has_insurance' => true],
+                            ]);
+                            $msg .= ' Misión de reembolso asignada al gestor.';
+                        } else {
+                            // Sin seguro → informar al gestor de la baja
+                            Task::create([
+                                'assigned_gestor_id' => $gestorId,
+                                'created_by'         => auth()->id(),
+                                'title'              => "ℹ️ Reserva Cancelada (sin seguro) — {$clientName}",
+                                'description'        => "La reserva de {$clientName} (importe: {$amount}) ha sido cancelada.\n\nEl cliente NO tiene seguro de reembolso. Comunica la baja al cliente según la política estándar.\n\nReserva ID: #{$res->id}",
+                                'type'               => 'passenger_issue',
+                                'status'             => 'Pendiente',
+                                'priority'           => 'media',
+                                'payload'            => ['reservation_id' => $res->id, 'client_name' => $clientName, 'amount' => $res->total_price, 'has_insurance' => false],
+                            ]);
+                            $msg .= ' Gestor notificado de la cancelación.';
+                        }
+                    }
+                    // ──────────────────────────────────────────────────────
 
                     // ⚠️ Alerta de hotel compartido: si era el pagador, marcar al compañero
                     $snap = $res->price_snapshot;
@@ -1800,13 +1842,23 @@ class ManageReservations extends Component
                                 'discount_note' => 'ACCIÓN REQUERIDA: Reasignar coste de habitación compartida (el otro ocupante canceló).'
                             ]);
                             $msg .= ' ⚠️ Se ha marcado la reserva del compañero de habitación para reasignación de hotel.';
-                        }
-                    }
 
-                    if ($res->logistics?->refund_insurance_included) {
-                        $msg .= ' Se ha notificado al gestor para tramitar el reembolso del seguro.';
-                    } else {
-                        $msg .= ' Nota: Esta reserva NO contaba con seguro de reembolso.';
+                            // Tarea de reasignación de hotel al gestor del compañero
+                            $companionGestorId = $orphan->user?->assigned_manager_id;
+                            if ($companionGestorId) {
+                                $companionName = $orphan->user?->name ?? 'Pasajero';
+                                Task::create([
+                                    'assigned_gestor_id' => $companionGestorId,
+                                    'created_by'         => auth()->id(),
+                                    'title'              => "🏨 Reasignar Hotel — {$companionName} queda sin habitación compartida",
+                                    'description'        => "El compañero de habitación de {$companionName} ha cancelado su reserva. Debes reasignar el coste del hotel o buscar una nueva opción de alojamiento para {$companionName}.\n\nReserva afectada ID: #{$orphan->id}",
+                                    'type'               => 'passenger_issue',
+                                    'status'             => 'Pendiente',
+                                    'priority'           => 'alta',
+                                    'payload'            => ['reservation_id' => $orphan->id, 'client_name' => $companionName],
+                                ]);
+                            }
+                        }
                     }
 
                     session()->flash('message', $msg);

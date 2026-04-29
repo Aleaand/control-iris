@@ -7,9 +7,20 @@ use App\Http\Controllers\StripeController;
 
 Route::view('/', 'welcome');
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+Route::get('dashboard', function () {
+    $user = auth()->user();
+    
+    if ($user->role === 'super_admin') {
+        return redirect()->route('admin.dashboard');
+    }
+    
+    if ($user->role === 'gestor') {
+        return redirect()->route('gestor.dashboard');
+    }
+    
+    // Default or clients
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::view('profile', 'profile')
     ->middleware(['auth'])
@@ -41,3 +52,25 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
 // Stripe Webhook — no auth, no CSRF (excluded in bootstrap/app.php)
 Route::post('/stripe/webhook', [StripeController::class, 'webhook'])->name('stripe.webhook');
 
+// ── Panel del Gestor ─────────────────────────────────────────────────────────
+Route::middleware(['auth', 'role:gestor'])->prefix('gestor')->name('gestor.')->group(function () {
+
+    // Cambio de contraseña (primer login — no requiere contraseña ya cambiada)
+    Route::get('/set-password',  \App\Livewire\Gestor\SetPassword::class)->name('set-password');
+
+    // Resto de rutas protegidas por must_change_password
+    Route::middleware('ensure_password_changed')->group(function () {
+        Route::get('/dashboard',     \App\Livewire\Gestor\GestorDashboard::class)->name('dashboard');
+        Route::get('/clients',       \App\Livewire\Gestor\GestorClients::class)->name('clients');
+        Route::get('/reservations',  \App\Livewire\Gestor\GestorReservations::class)->name('reservations');
+        Route::get('/compliance',    \App\Livewire\Gestor\GestorCompliance::class)->name('compliance');
+        Route::get('/payments',      \App\Livewire\Gestor\GestorPayments::class)->name('payments');
+        Route::get('/radar',         \App\Livewire\Gestor\GestorRadar::class)->name('radar');
+        Route::get('/missions',      \App\Livewire\Gestor\GestorMissions::class)->name('missions');
+        Route::get('/communication', \App\Livewire\Gestor\GestorCommunication::class)->name('communication');
+
+        // PDF del ticket (Final GO)
+        Route::get('/reservations/{reservation}/ticket-pdf', [\App\Http\Controllers\GestorController::class, 'downloadTicket'])
+            ->name('reservations.ticket-pdf');
+    });
+});

@@ -10,13 +10,14 @@ class CheckRole
 {
     /**
      * Handle an incoming request.
+     * Supports multiple roles separated by pipe: role:gestor|super_admin
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  $role 
+     * @param  string  ...$roles
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (auth()->check() && auth()->user()->role === $role) {
+        if (auth()->check() && in_array(auth()->user()->role, $roles)) {
             return $next($request);
         }
 

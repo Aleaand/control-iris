@@ -3,11 +3,13 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use Livewire\Attributes\Url;
 use App\Models\User;
 use App\Models\Passport;
 use App\Models\MedicalCertificate;
 use App\Models\Reservation;
+use App\Models\Task;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -16,6 +18,8 @@ use Illuminate\Support\Facades\Mail;
 
 class ManageUsers extends Component
 {
+    use WithPagination;
+
     public $roleFilter;
 
     #[Url(as: 'manager')]
@@ -248,7 +252,7 @@ class ManageUsers extends Component
             });
         }
 
-        $users = $query->orderBy('name', $this->sortDir)->get();
+        $users = $query->orderBy('name', $this->sortDir)->paginate(10);
         // Load available managers so we can assign clients (Only useful when editing a client)
         $managers = [];
         $availableGestors = [];
@@ -392,6 +396,7 @@ class ManageUsers extends Component
             $this->tempPassword = $rawPassword;
             
             $data['password'] = \Illuminate\Support\Facades\Hash::make($rawPassword);
+            $data['must_change_password'] = $rawPassword; // stored plain so user can log in; cleared after they set own password
             $data['role'] = $this->roleFilter;
             $user = User::create($data);
 
@@ -435,16 +440,27 @@ class ManageUsers extends Component
     public function resetPassword()
     {
         if (!$this->isEditing || !$this->userId) return;
+        $this->regenerateUserPassword($this->userId);
+    }
 
-        $user = User::find($this->userId);
+    public function regenerateUserPassword($id)
+    {
+        $user = User::find($id);
         if ($user) {
             $rawPassword = \Illuminate\Support\Str::random(12);
             $this->tempPassword = $rawPassword;
             $user->password = \Illuminate\Support\Facades\Hash::make($rawPassword);
+            $user->must_change_password = $rawPassword;
             $user->save();
 
+            try {
+                Mail::to($user->email)->send(new \App\Mail\WelcomeUserMail($user, $rawPassword));
+            } catch (\Exception $e) {
+                Log::error("Error enviando email de reseteo: " . $e->getMessage());
+            }
+
             $this->showPasswordModal = true;
-            session()->flash('message', "Clave de acceso de emergencia regenerada con éxito.");
+            session()->flash('message', "Clave de acceso de emergencia regenerada con éxito para {$user->name} y enviada por email.");
         }
     }
 
@@ -500,6 +516,23 @@ class ManageUsers extends Component
         User::where('assigned_manager_id', $gestor->id)
             ->update(['assigned_manager_id' => $targetGestor->id]);
 
+        // ── Tarea de bienvenida de cartera al gestor destino ──────────
+        $clientNames = User::where('assigned_manager_id', $targetGestor->id)
+            ->where('role', 'cliente')
+            ->pluck('name')
+            ->implode(', ');
+        Task::create([
+            'assigned_gestor_id' => $targetGestor->id,
+            'created_by'         => auth()->id(),
+            'title'              => "📋 Cartera Recibida — Clientes de {$gestor->name}",
+            'description'        => "Has recibido la cartera de clientes del gestor {$gestor->name} que ha sido eliminado del sistema.\n\nClientes asignados: {$clientNames}\n\nRevisa sus expedientes y retoma la gestión de sus reservas activas.",
+            'type'               => 'general',
+            'status'             => 'Pendiente',
+            'priority'           => 'media',
+            'payload'            => ['migrated_from_gestor' => $gestor->name, 'migrated_from_id' => $gestor->id],
+        ]);
+        // ─────────────────────────────────────────────────────────────
+
         $gestor->delete();
 
         session()->flash('message', "Gestor eliminado. Todos los clientes han sido migrados a {$targetGestor->name}.");
@@ -528,6 +561,25 @@ class ManageUsers extends Component
                     ->update(['status' => 'Cancelada', 'seat_number' => null]);
 
                 $user->delete(); // SoftDeletes
+
+                // ── Tarea al gestor del cliente sobre la baja ─────────────
+                if ($user->assigned_manager_id) {
+                    $cancelledCount = Reservation::where('user_id', $user->id)
+                        ->where('status', 'Cancelada')
+                        ->count();
+                    Task::create([
+                        'assigned_gestor_id' => $user->assigned_manager_id,
+                        'created_by'         => auth()->id(),
+                        'title'              => "👤 Baja de Cliente — {$user->name}",
+                        'description'        => "El cliente {$user->name} ha sido dado de baja del sistema (cuenta desactivada).\n\nSe han cancelado {$cancelledCount} reserva(s) activa(s). Comunica la baja al cliente y gestiona cualquier incidencia pendiente.",
+                        'type'               => 'passenger_issue',
+                        'status'             => 'Pendiente',
+                        'priority'           => 'media',
+                        'payload'            => ['client_id' => $user->id, 'client_name' => $user->name, 'cancelled_reservations' => $cancelledCount],
+                    ]);
+                }
+                // ─────────────────────────────────────────────────────────
+
                 session()->flash('message', 'Cliente desactivado (Soft Delete). Reservas canceladas. Registro fiscal preservado.');
             } else {
                 // Hard Delete: sin historial financiero

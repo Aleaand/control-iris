@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
@@ -18,6 +18,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'must_change_password',
         'primarylastname',
         'secondarylastname',
         'phone',
@@ -86,5 +87,40 @@ class User extends Authenticatable
     public function reservations()
     {
         return $this->hasMany(Reservation::class);
+    }
+
+    public function refundRequests()
+    {
+        return $this->hasMany(RefundRequest::class, 'gestor_id');
+    }
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_gestor_id');
+    }
+
+    public function contactLogs()
+    {
+        return $this->hasMany(ContactLog::class, 'gestor_id');
+    }
+
+    public function paymentLinks()
+    {
+        return $this->hasMany(PaymentLink::class, 'created_by');
+    }
+
+    public function isGestor(): bool
+    {
+        return $this->role === 'gestor';
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function needsPasswordChange(): bool
+    {
+        return !is_null($this->must_change_password);
     }
 }
