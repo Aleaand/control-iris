@@ -3,10 +3,13 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use Livewire\WithPagination;
+use App\Traits\HasResponsivePagination;
 use App\Models\Destination;
 
 class ManageDestinations extends Component
 {
+    use WithPagination, HasResponsivePagination;
     public $name, $description, $distance_au, $max_distance_au, $launch_fee, $landing_fee;
     public $isEditing = false, $destinationId;
     public $search = '';
@@ -51,11 +54,15 @@ class ManageDestinations extends Component
         $query = Destination::query();
 
         if ($this->search) {
-            $query->where('name', 'like', '%' . $this->search . '%')
-                ->orWhere('id', 'like', $this->search . '%');
+            $searchTerm = '%' . strtolower($this->search) . '%';
+            $query->where(function($q) use ($searchTerm) {
+                $q->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
+                  ->orWhereRaw("LPAD(id::text, 4, '0') LIKE ?", ["{$this->search}%"])
+                  ->orWhereRaw('id::text LIKE ?', ["{$this->search}%"]);
+            });
         }
 
-        $destinations = $query->orderBy('name', $this->sortDir)->get();
+        $destinations = $query->orderBy('name', $this->sortDir)->paginate($this->getPerPage());
 
         return view('livewire.admin.manage-destinations', [
             'destinations' => $destinations
@@ -96,6 +103,9 @@ class ManageDestinations extends Component
             'name' => 'required|string|max:255',
             'description' => 'required|string|min:5',
             'distance_au' => 'required|numeric|min:0.01',
+            'max_distance_au' => 'required|numeric|min:0.01',
+            'launch_fee' => 'required|numeric|min:0',
+            'landing_fee' => 'required|numeric|min:0',
         ]);
 
         $this->showSaveModal = true;
@@ -107,7 +117,7 @@ class ManageDestinations extends Component
             'name' => 'required|string|max:255',
             'description' => 'required|string|min:5',
             'distance_au' => 'required|numeric|min:0.01',
-            'max_distance_au' => 'nullable|numeric|min:0.01',
+            'max_distance_au' => 'required|numeric|min:0.01',
             'launch_fee' => 'required|numeric|min:0',
             'landing_fee' => 'required|numeric|min:0',
         ]);

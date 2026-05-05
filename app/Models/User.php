@@ -14,11 +14,31 @@ class User extends Authenticatable implements MustVerifyEmail
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
 
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new \App\Notifications\CustomResetPasswordNotification($token));
+    }
+
+    /**
+     * Send the email verification notification.
+     *
+     * @return void
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new \App\Notifications\CustomVerifyEmailNotification());
+    }
+
     protected $fillable = [
         'name',
         'email',
         'password',
-        'must_change_password',
         'primarylastname',
         'secondarylastname',
         'phone',
@@ -117,10 +137,5 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isSuperAdmin(): bool
     {
         return $this->role === 'super_admin';
-    }
-
-    public function needsPasswordChange(): bool
-    {
-        return !is_null($this->must_change_password);
     }
 }

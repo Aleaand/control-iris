@@ -7,16 +7,18 @@ use App\Models\User;
 use App\Models\Location;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Traits\HasResponsivePagination;
 
 class ManagePassengers extends Component
 {
-    use WithPagination;
+    use WithPagination, HasResponsivePagination;
 
-    // Filtro por cliente
     public $filterUserId = null;
     public $filterUserName = null;
 
-    // Búsqueda y orden
+    #[Url(as: 'manager')]
+    public $filterManagerId = null;
+    public $filterManagerName = null;
     public $search = '';
     public $sortDir = 'asc';
 
@@ -24,13 +26,9 @@ class ManagePassengers extends Component
     public $name, $primarylastname, $secondarylastname;
     public $document_number, $document_country;
     public $birth_date;
-
-    // Datos médicos
     public $blood_type = '';
     public $allergies = '';
     public $physical_fitness = 'No apto';
-
-    // Documentación Iris
     public $iris_passport_number = '';
     public $iris_passport_expiration = '';
     public $training_certificate_date = '';
@@ -54,7 +52,7 @@ class ManagePassengers extends Component
     public $deleteId = null;
     public $deleteImpactInfo = [];
 
-    public function mount($userId = null)
+    public function mount($userId = null, $managerId = null)
     {
         if ($userId) {
             $user = User::find($userId);
@@ -65,13 +63,21 @@ class ManagePassengers extends Component
                 $this->selectedClientName = $user->name;
             }
         }
+
+        if ($managerId) {
+            $manager = User::where('role', 'gestor')->find($managerId);
+            if ($manager) {
+                $this->filterManagerId = $managerId;
+                $this->filterManagerName = $manager->name;
+            }
+        }
     }
 
     protected function rules()
     {
         $rules = [
             'name' => 'required|string|min:2|max:100',
-            'primarylastname' => 'nullable|string|max:100',
+            'primarylastname' => 'required|string|max:100',
             'secondarylastname' => 'nullable|string|max:100',
             'document_number' => 'required|string|max:50',
             'document_country' => 'required|string|size:3',
@@ -79,7 +85,7 @@ class ManagePassengers extends Component
             'user_id' => 'required|exists:users,id',
             'blood_type' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
             'allergies' => 'nullable|string|max:1000',
-            'physical_fitness' => 'required|in:Excelente,En entrenamiento,No apto',
+            'physical_fitness' => 'required|in:Apto,En entrenamiento,No apto',
             'iris_passport_number' => 'nullable|string|max:100',
             'iris_passport_expiration' => 'nullable|date',
             'training_certificate_date' => 'nullable|date',
@@ -193,15 +199,26 @@ class ManagePassengers extends Component
             $query->where('user_id', $this->filterUserId);
         }
 
+        if ($this->filterManagerId) {
+            $query->whereHas('client', function ($q) {
+                $q->where('assigned_manager_id', $this->filterManagerId);
+            });
+        }
+
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('primarylastname', 'like', '%' . $this->search . '%')
-                    ->orWhere('document_number', 'like', '%' . $this->search . '%');
+                    ->orWhere('secondarylastname', 'like', '%' . $this->search . '%')
+                    ->orWhere('document_number', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('client', function ($sq) {
+                        $sq->where('name', 'like', '%' . $this->search . '%')
+                            ->orWhere('email', 'like', '%' . $this->search . '%');
+                    });
             });
         }
 
-        $passengers = $query->orderBy('name', $this->sortDir)->paginate(10);
+        $passengers = $query->orderBy('name', $this->sortDir)->paginate($this->getPerPage());
         $uniqueCountries = Location::whereNotNull('country_code')
             ->select('country_code')
             ->distinct()

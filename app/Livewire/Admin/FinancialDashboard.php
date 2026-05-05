@@ -3,11 +3,16 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use Livewire\WithPagination;
+use App\Traits\HasResponsivePagination;
 use App\Models\Reservation;
 use Illuminate\Support\Carbon;
 
 class FinancialDashboard extends Component
 {
+    use WithPagination, HasResponsivePagination;
+
+    protected $paginationTheme = 'simple-tailwind';
     public string $period = 'year';
     public string $search = '';
 
@@ -17,7 +22,6 @@ class FinancialDashboard extends Component
     public ?string $customEnd = null;
 
     public ?int $selectedFlightId = null;
-    public bool $upcomingOnly = false;
 
     public array $chartData = [];
     public int $maxAvailableYear = 2024;
@@ -51,6 +55,12 @@ class FinancialDashboard extends Component
             $query->where(function ($q) {
                 $q->where('id_locator', 'like', '%' . $this->search . '%')
                     ->orWhere('id', 'like', '%' . $this->search . '%');
+
+                // Búsqueda por ID numérico (soporta 0011 -> 11)
+                $cleanSearch = ltrim($this->search, '0');
+                if (is_numeric($cleanSearch) && $cleanSearch !== '') {
+                    $q->orWhere('id', (int) $cleanSearch);
+                }
             });
         }
 
@@ -77,6 +87,7 @@ class FinancialDashboard extends Component
         $flightsInPeriod = (clone $flightQuery)
             ->whereBetween('departure_date', [$start, $end])
             ->where('status', '!=', 'cancelled')
+            ->where('departure_date', '<=', now())
             ->get();
 
         $totalExpenses = $flightsInPeriod->sum('operational_cost');
@@ -88,25 +99,61 @@ class FinancialDashboard extends Component
         $pending = Reservation::where('payment_status', 'pending')->count();
         $failed = Reservation::where('payment_status', 'failed')->count();
 
-        // transactions Table
+        $selectedYearVal = $this->selectedYear ?? now()->year;
+        $annualPaidReservations = Reservation::where('payment_status', 'paid')
+            ->whereYear('paid_at', $selectedYearVal)
+            ->get();
+
+        $annualNetIncome = $annualPaidReservations->sum('total_price');
+        $annualGrossIncome = 0;
+        foreach ($annualPaidReservations as $res) {
+            $snap = is_string($res->price_snapshot) ? json_decode($res->price_snapshot, true) : $res->price_snapshot;
+            if ($snap && isset($snap['subtotal'])) {
+                $annualGrossIncome += $snap['subtotal'];
+            } else {
+                $annualGrossIncome += $res->total_price;
+            }
+        }
+
+        $annualExpenses = \App\Models\Flight::where('status', '!=', 'cancelled')
+            ->whereYear('departure_date', $selectedYearVal)
+            ->where('departure_date', '<=', now())
+            ->sum('operational_cost');
+
+        $annualProjectedIncome = \App\Models\Flight::where('status', '!=', 'cancelled')
+            ->whereYear('departure_date', $selectedYearVal)
+            ->get()
+            ->sum('max_income');
+
+        $annualProfit = $annualNetIncome - $annualExpenses;
+
         $transactions = (clone $query)
             ->whereIn('payment_status', ['paid', 'pending'])
             ->whereBetween('created_at', [$start, $end])
             ->orderByDesc('created_at')
-            ->take(30)
-            ->get();
+            ->paginate($this->getPerPage(), pageName: 'txPage');
 
-        // Expenses Table
-        $flightsWithExpenses = \App\Models\Flight::with(['starship', 'destination'])
+        $flightsWithExpensesQuery = \App\Models\Flight::with(['starship', 'destination'])
             ->whereBetween('departure_date', [$start, $end])
             ->where('status', '!=', 'cancelled')
-            ->orderByDesc('departure_date')
-            ->get();
+            ->where('departure_date', '<=', now());
 
-        // Chart Data
+        if ($this->search) {
+            $flightsWithExpensesQuery->where(function ($q) {
+                $q->where('flight_code', 'like', '%' . $this->search . '%')
+                    ->orWhere('id', 'like', '%' . $this->search . '%');
+                $cleanSearch = ltrim($this->search, '0');
+                if (is_numeric($cleanSearch) && $cleanSearch !== '') {
+                    $q->orWhere('id', (int) $cleanSearch);
+                }
+            });
+        }
+
+        $flightsWithExpenses = $flightsWithExpensesQuery->orderByDesc('departure_date')
+            ->paginate($this->getPerPage(), pageName: 'expPage');
+
         $this->chartData = $this->buildChartData($start, $end);
 
-        // Selection Detail
         $flightDetails = null;
         if ($this->selectedFlightId) {
             $flightDetails = \App\Models\Flight::with(['starship', 'destination'])->find($this->selectedFlightId);
@@ -122,9 +169,14 @@ class FinancialDashboard extends Component
             'avgTicket' => $avgTicket,
             'pending' => $pending,
             'failed' => $failed,
+            'annualNetIncome' => $annualNetIncome,
+            'annualGrossIncome' => $annualGrossIncome,
+            'annualExpenses' => $annualExpenses,
+            'annualProfit' => $annualProfit,
+            'annualProjectedIncome' => $annualProjectedIncome,
             'transactions' => $transactions,
             'flightsWithExpenses' => $flightsWithExpenses,
-            'criticalFlights' => $this->getCriticalFlights(),
+            'criticalFlights' => $this->getAnalysisFlights(),
             'startDate' => $start,
             'endDate' => $end,
             'flightDetails' => $flightDetails,
@@ -162,15 +214,31 @@ class FinancialDashboard extends Component
         };
     }
 
-    private function getCriticalFlights()
+    private function getAnalysisFlights()
     {
+        $q = \App\Models\Flight::with('starship')
+            ->whereNotIn('status', ['cancelled', 'landed'])
+            ->where('departure_date', '>', now());
+
+        if ($this->search) {
+            $q->where(function ($sub) {
+                $sub->where('flight_code', 'like', '%' . $this->search . '%')
+                    ->orWhere('id', 'like', '%' . $this->search . '%');
+                $cleanSearch = ltrim($this->search, '0');
+                if (is_numeric($cleanSearch) && $cleanSearch !== '') {
+                    $sub->orWhere('id', (int) $cleanSearch);
+                }
+            });
+            return $q->orderBy('departure_date')->paginate($this->getPerPage(), pageName: 'anaPage');
+        }
+
+        // Si no hay búsqueda, mostramos solo los críticos (< 80%)
         return \App\Models\Flight::with('starship')
             ->whereNotIn('status', ['cancelled', 'landed'])
             ->where('departure_date', '>', now())
-            ->get()
-            ->filter(fn($f) => $f->occupancy_percentage < 80)
-            ->sortBy('occupancy_percentage')
-            ->take(8);
+            ->whereRaw('(SELECT COUNT(*) FROM reservations WHERE reservations.space_flight_id = flights.id AND reservations.payment_status = \'paid\') / CAST(NULLIF(flights.total_capacity, 0) AS FLOAT) < 0.8')
+            ->orderBy('departure_date')
+            ->paginate($this->getPerPage(), pageName: 'anaPage');
     }
 
     private function buildChartData($start, $end)
@@ -179,78 +247,32 @@ class FinancialDashboard extends Component
         $net = [];
         $exp = [];
         $proj = [];
+        $year = $this->selectedYear ?? now()->year;
 
-        // MODE 1: ALL TIME (By Year)
-        if ($this->period === 'all') {
-            $minYear = 2024;
-            $maxDataDate = max(
-                Reservation::where('payment_status', 'paid')->max('paid_at') ?? now(),
-                \App\Models\Flight::where('status', '!=', 'cancelled')->max('departure_date') ?? now()
-            );
-            $foundMaxYear = Carbon::parse($maxDataDate)->year;
-            // Cap at a reasonable future (e.g. next 10 years) to avoid DB inconsistencies
-            $maxYear = min($foundMaxYear, now()->year + 10);
+        for ($m = 1; $m <= 12; $m++) {
+            $labels[] = Carbon::create()->month($m)->locale('es')->translatedFormat('M');
 
-            for ($y = $minYear; $y <= $maxYear; $y++) {
-                $labels[] = $y;
-                
-                $n = Reservation::where('payment_status', 'paid')
-                    ->whereYear('paid_at', $y)
-                    ->sum('total_price');
+            $n = Reservation::where('payment_status', 'paid')
+                ->whereMonth('paid_at', $m)
+                ->whereYear('paid_at', $year)
+                ->sum('total_price');
 
-                $eQuery = \App\Models\Flight::where('status', '!=', 'cancelled')
-                    ->whereYear('departure_date', $y);
-                
-                if ($this->upcomingOnly) {
-                    $eQuery->where('departure_date', '>=', now());
-                }
-                
-                $e = $eQuery->sum('operational_cost');
-                
-                // Projected Income
-                $pSum = 0;
-                $flights = (clone $eQuery)->get();
-                foreach($flights as $f) { $pSum += $f->max_income; }
+            $eQuery = \App\Models\Flight::where('status', '!=', 'cancelled')
+                ->whereMonth('departure_date', $m)
+                ->whereYear('departure_date', $year)
+                ->where('departure_date', '<=', now());
 
-                $net[] = $n;
-                $exp[] = $e;
-                $proj[] = $pSum;
+            $e = $eQuery->sum('operational_cost');
+
+            $pSum = 0;
+            $flights = (clone $eQuery)->get();
+            foreach ($flights as $f) {
+                $pSum += $f->max_income;
             }
-        } 
-        // MODE 2: BY YEAR (12 Months)
-        else {
-            // Determine which year to show months for
-            $year = ($this->period === 'year' || $this->period === 'month') 
-                ? ($this->selectedYear ?? $start->year) 
-                : $start->year;
-            
-            for ($m = 1; $m <= 12; $m++) {
-                $labels[] = Carbon::create()->month($m)->locale('es')->translatedFormat('M');
-                
-                $n = Reservation::where('payment_status', 'paid')
-                    ->whereMonth('paid_at', $m)
-                    ->whereYear('paid_at', $year)
-                    ->sum('total_price');
 
-                $eQuery = \App\Models\Flight::where('status', '!=', 'cancelled')
-                    ->whereMonth('departure_date', $m)
-                    ->whereYear('departure_date', $year);
-
-                if ($this->upcomingOnly) {
-                    $eQuery->where('departure_date', '>=', now());
-                }
-
-                $e = $eQuery->sum('operational_cost');
-
-                // Projected Income
-                $pSum = 0;
-                $flights = (clone $eQuery)->get();
-                foreach($flights as $f) { $pSum += $f->max_income; }
-
-                $net[] = $n;
-                $exp[] = $e;
-                $proj[] = $pSum;
-            }
+            $net[] = $n;
+            $exp[] = $e;
+            $proj[] = $pSum;
         }
 
         return [
@@ -268,10 +290,6 @@ class FinancialDashboard extends Component
         if ($period !== 'custom') {
             $this->customStart = null;
             $this->customEnd = null;
-        }
-
-        if ($period === 'all') {
-            $this->upcomingOnly = false;
         }
 
         $this->dispatch('chart-refreshed');
@@ -298,8 +316,15 @@ class FinancialDashboard extends Component
         $this->selectedFlightId = $id;
     }
 
-    public function toggleUpcoming()
+    public function resetFilters()
     {
-        $this->upcomingOnly = !$this->upcomingOnly;
+        $this->search = '';
+        $this->period = 'year';
+        $this->selectedMonth = now()->format('m');
+        $this->selectedYear = now()->format('Y');
+        $this->customStart = null;
+        $this->customEnd = null;
+        $this->selectedFlightId = null;
+        $this->dispatch('chart-refreshed');
     }
 }

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Iris Aerospace</title>
+    <title>Iris Aerospace - Control</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <script>
@@ -19,30 +19,77 @@
         }
         applyTheme();
         document.addEventListener('livewire:navigated', applyTheme);
+
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+
+        const layers = [
+            { el: null, id: 'cloud-1-el', tx: 0, ty: 0, speed: 0.018, range: 55 },
+            { el: null, id: 'cloud-2-el', tx: 0, ty: 0, speed: 0.012, range: 35 },
+            { el: null, id: 'cloud-3-el', tx: 0, ty: 0, speed: 0.025, range: 70 },
+            { el: null, id: 'cursor-light', tx: 0, ty: 0, speed: 0.09, range: 0 },
+        ];
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function animateNebula() {
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+            const dx = (mouseX - cx) / cx;
+            const dy = (mouseY - cy) / cy;
+
+            layers.forEach(layer => {
+                if (!layer.el) {
+                    layer.el = layer.id === 'cursor-light'
+                        ? document.getElementById('cursor-light')
+                        : document.querySelector('.' + layer.id.replace('-el', ''));
+                }
+                if (!layer.el) return;
+
+                if (layer.id === 'cursor-light') {
+                    layer.tx += (mouseX - layer.tx) * layer.speed;
+                    layer.ty += (mouseY - layer.ty) * layer.speed;
+                    layer.el.style.left = layer.tx + 'px';
+                    layer.el.style.top = layer.ty + 'px';
+                } else {
+                    const targetX = dx * layer.range;
+                    const targetY = dy * layer.range;
+                    layer.tx += (targetX - layer.tx) * layer.speed;
+                    layer.ty += (targetY - layer.ty) * layer.speed;
+                    layer.el.style.setProperty('--px', layer.tx + 'px');
+                    layer.el.style.setProperty('--py', layer.ty + 'px');
+                }
+            });
+
+            requestAnimationFrame(animateNebula);
+        }
+
+        document.addEventListener('DOMContentLoaded', animateNebula);
     </script>
+    <style>
+        /* Estilo crítico para evitar el destello blanco */
+        html, body { background-color: #0a0a0f !important; }
+        [x-cloak] { display: none !important; }
+    </style>
     @vite(['resources/css/app.css', 'resources/css/obsidian-design.css', 'resources/js/app.js'])
 </head>
 
-<body class="font-sans antialiased obsidian-bg text-[var(--text-primary)]" style="color: var(--text-primary)">
+<body class="font-sans antialiased obsidian-bg text-[var(--text-primary)]" style="color: var(--text-primary); background-color: #0a0a0f;">
     <div class="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
 
-        <!-- Background grid -->
-        <div class="absolute inset-0 opacity-[0.03] pointer-events-none"
-            style="background-image: linear-gradient(var(--text-primary) 1px, transparent 1px), linear-gradient(90deg, var(--text-primary) 1px, transparent 1px); background-size: 60px 60px;">
+        <div class="nebula-container">
+            <div class="nebula-cloud cloud-1"></div>
+            <div class="nebula-cloud cloud-2"></div>
+            <div class="nebula-cloud cloud-3"></div>
+            <div id="cursor-light"></div>
         </div>
 
-        <!-- Atmospheric Glows -->
-        <div
-            class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[var(--neon-cyan)]/5 rounded-full blur-[120px] pointer-events-none">
-        </div>
-        <div
-            class="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[var(--neon-emerald)]/5 rounded-full blur-[120px] pointer-events-none">
-        </div>
-
-        <div class="relative z-10 w-full max-w-4xl flex flex-col items-center text-center space-y-12 animate-tech">
+        <div class="relative z-10 w-full max-w-4xl flex flex-col items-center text-center space-y-10 animate-tech" style="opacity: 0;">
             <div class="relative group">
-                <div
-                    class="relative w-32 h-32 md:w-40 md:h-40 rounded-3xl flex items-center justify-center p-6 shadow-2xl backdrop-blur-xl">
+                <div class="relative w-42 h-42 md:w-40 md:h-40 rounded-3xl flex items-center justify-center p-3">
                     <script>
                         document.write('<img src="' + (localStorage.getItem('theme') === 'light' ? '{{ asset('assets/logo_iris_black.png') }}' : '{{ asset('assets/logo_iris.png') }}') + '" alt="Iris Aerospace" class="w-full">');
                     </script>
@@ -87,9 +134,9 @@
             <div class="pt-12 border-t border-[var(--border-glass)] w-full max-w-lg">
                 <div
                     class="flex justify-between items-center font-mono-tech text-[10px] text-[var(--text-secondary)] uppercase tracking-widest opacity-40">
-                    <span>ESTADO: OPERANDO</span>
+                    <span>ESTADO: OPERATIVO</span>
                     <span class="w-1.5 h-1.5 bg-[var(--neon-emerald)] rounded-full animate-pulse"></span>
-                    <span>SISTEMA: PRIVADO</span>
+                    <span>SISTEMA: CONTROL PRIVADO</span>
                 </div>
             </div>
         </div>

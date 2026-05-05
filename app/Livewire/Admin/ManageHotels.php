@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use App\Traits\HasResponsivePagination;
 use App\Models\Hotel;
 use App\Models\Location;
 use App\Models\PriceLog;
@@ -11,7 +12,7 @@ use Livewire\WithPagination;
 
 class ManageHotels extends Component
 {
-    use WithPagination;
+    use WithPagination, HasResponsivePagination;
 
     // Propiedades del Modelo
     public $hotelId, $name, $location_id, $galactic_stars = 5, $price_per_night, $total_rooms;
@@ -74,17 +75,20 @@ class ManageHotels extends Component
         $query = Hotel::query()->with('location');
 
         if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhereHas('location', function ($sub) {
-                        $sub->where('name', 'like', '%' . $this->search . '%')
-                            ->orWhere('code', 'like', '%' . $this->search . '%');
+            $searchTerm = '%' . strtolower($this->search) . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
+                    ->orWhereRaw("LPAD(id::text, 4, '0') LIKE ?", ["%{$this->search}%"])
+                    ->orWhereRaw('id::text LIKE ?', ["%{$this->search}%"])
+                    ->orWhereHas('location', function ($sub) use ($searchTerm) {
+                        $sub->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
+                            ->orWhereRaw('LOWER(code) LIKE ?', [$searchTerm]);
                     });
             });
         }
 
         return view('livewire.admin.manage-hotels', [
-            'hotels' => $query->orderBy('name', $this->sortDir)->paginate(10),
+            'hotels' => $query->orderBy('name', $this->sortDir)->paginate($this->getPerPage()),
             'locations' => Location::orderBy('name', 'asc')->get()
         ])->layout('layouts.app');
     }

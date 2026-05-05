@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use Livewire\WithPagination;
+use App\Traits\HasResponsivePagination;
 use App\Models\Flight;
 use App\Models\Starship;
 use App\Models\Destination;
@@ -15,6 +17,7 @@ use Illuminate\Support\Str;
 
 class ManageFlights extends Component
 {
+    use WithPagination, HasResponsivePagination;
     #[\Livewire\Attributes\Url]
     public $search = '';
     
@@ -23,7 +26,11 @@ class ManageFlights extends Component
 
     #[\Livewire\Attributes\Url(as: 'status')]
     public $statusFilter = 'all';
-    public $sortDir = 'desc';
+
+    #[\Livewire\Attributes\Url(as: 'date')]
+    public $dateFilter = '';
+
+    public $sortDir = 'desc'; // Por defecto los más recientes primero (fecha más lejana o última creada)
     public $flightId;
     public $flight_code;
     public $starship_id = '';
@@ -86,6 +93,8 @@ class ManageFlights extends Component
 
     public $user_modified_base_price = false;
     public $user_modified_return_base_price = false;
+    public $user_modified_arrival_date = false;
+    public $user_modified_return_arrival_date = false;
 
     // ── Cálculos de Vuelo ────────────────────────────────────────────────────────
     public $flight_hours_outbound = 0;
@@ -203,6 +212,7 @@ class ManageFlights extends Component
     {
         $this->au_distance = (int) $this->au_distance;
         $this->arrival_date = null;
+        $this->user_modified_arrival_date = false;
         if (!$this->showReturnForm) {
             $this->return_au_distance = (int) $this->au_distance;
         }
@@ -219,12 +229,14 @@ class ManageFlights extends Component
     {
         $this->resetValidation(['departure_date', 'starship_id']);
         $this->arrival_date = null;
+        $this->user_modified_arrival_date = false;
         $this->recalculateAll();
     }
 
     public function updatedArrivalDate()
     {
         $this->resetValidation(['arrival_date', 'starship_id']);
+        $this->user_modified_arrival_date = true;
 
         // Detección de conflicto con vuelo de retorno vinculado
         if ($this->isEditing && !$this->isReturnFlight && $this->siblingFlightId && $this->arrival_date) {
@@ -381,7 +393,13 @@ class ManageFlights extends Component
     }
     public function updatedReturnDepartureDate()
     {
+        $this->user_modified_return_arrival_date = false;
         $this->recalculateAll();
+    }
+    public function updatedReturnArrivalDate()
+    {
+        $this->user_modified_return_arrival_date = true;
+        $this->calculateMissionProfit();
     }
     public function updatedReturnBasePrice()
     {
@@ -428,12 +446,21 @@ class ManageFlights extends Component
 
     private function recalculateAll()
     {
-        if ($this->starship_id && $this->total_capacity == 0) {
-            $starship = Starship::find($this->starship_id);
-            if ($starship) {
-                $this->total_capacity = (int) $starship->general_capacity + (int) $starship->vip_capacity + (int) $starship->crew_capacity;
-                $this->crew_members = (int) $starship->crew_capacity;
-                $this->shipCostPerAu = (float) $starship->operational_cost_per_au;
+        if ($this->starship_id) {
+            if ($this->total_capacity == 0 || $this->mission_speed_au <= 0 || $this->shipCostPerAu <= 0) {
+                $starship = Starship::find($this->starship_id);
+                if ($starship) {
+                    if ($this->total_capacity == 0) {
+                        $this->total_capacity = (int) $starship->general_capacity + (int) $starship->vip_capacity + (int) $starship->crew_capacity;
+                        $this->crew_members = (int) $starship->crew_capacity;
+                    }
+                    if ($this->shipCostPerAu <= 0) {
+                        $this->shipCostPerAu = (float) $starship->operational_cost_per_au;
+                    }
+                    if ($this->mission_speed_au <= 0) {
+                        $this->mission_speed_au = (float) ($starship->cruise_speed_au ?? 0);
+                    }
+                }
             }
         }
 
@@ -443,13 +470,15 @@ class ManageFlights extends Component
         }
 
         if ($this->flight_hours_outbound > 0 && $this->departure_date) {
-            $this->suggested_arrival_date = Carbon::parse($this->departure_date)
-                ->addHours($this->flight_hours_outbound)
-                ->format('Y-m-d\TH:i');
+            try {
+                $this->suggested_arrival_date = Carbon::parse($this->departure_date)
+                    ->addHours($this->flight_hours_outbound)
+                    ->format('Y-m-d\TH:i');
 
-            if (empty($this->arrival_date)) {
-                $this->arrival_date = $this->suggested_arrival_date;
-            }
+                if (!$this->user_modified_arrival_date) {
+                    $this->arrival_date = $this->suggested_arrival_date;
+                }
+            } catch (\Exception $e) {}
         }
 
         $this->flight_hours_return = 0;
@@ -457,9 +486,15 @@ class ManageFlights extends Component
             $this->flight_hours_return = ceil($this->return_au_distance * $this->mission_speed_au);
 
             if ($this->flight_hours_return > 0 && $this->return_departure_date) {
-                $this->return_arrival_date = Carbon::parse($this->return_departure_date)
-                    ->addHours($this->flight_hours_return)
-                    ->format('Y-m-d\TH:i');
+                try {
+                    $sugg = Carbon::parse($this->return_departure_date)
+                        ->addHours($this->flight_hours_return)
+                        ->format('Y-m-d\TH:i');
+                    
+                    if (!$this->user_modified_return_arrival_date) {
+                        $this->return_arrival_date = $sugg;
+                    }
+                } catch (\Exception $e) {}
             }
         }
 
@@ -625,6 +660,7 @@ class ManageFlights extends Component
         $this->siblingBasePrice = 0;
         $this->showDateConflictModal = false;
         $this->conflictingReturnDate = null;
+        $this->user_modified_arrival_date = false;
 
         // Formulario retorno
         $this->showReturnForm = false;
@@ -682,16 +718,38 @@ class ManageFlights extends Component
     {
         $this->updateFlightStatuses();
 
-        $query = Flight::with(['starship', 'destination'])->withCount('reservations');
+        $query = Flight::with(['starship', 'destination', 'origin'])
+            ->withCount([
+                'reservations',
+                'reservations as nova_booked' => function ($q) {
+                    $q->where('seat_type', 'LIKE', 'Nova')->whereNotIn('status', ['Cancelada', 'Cancelled']);
+                },
+                'reservations as supernova_booked' => function ($q) {
+                    $q->where('seat_type', 'LIKE', 'Supernova')->whereNotIn('status', ['Cancelada', 'Cancelled']);
+                }
+            ]);
         if ($this->search) {
             $query->where(function (\Illuminate\Database\Eloquent\Builder $q) {
-                $q->where('flight_code', 'ilike', '%' . $this->search . '%')
-                    ->orWhereHas('destination', function ($subQ) {
-                        $subQ->where('name', 'ilike', '%' . $this->search . '%');
+                $searchTerm = '%' . $this->search . '%';
+                $q->where('flight_code', 'LIKE', $searchTerm)
+                    ->orWhereHas('destination', function ($subQ) use ($searchTerm) {
+                        $subQ->where('name', 'LIKE', $searchTerm);
                     })
-                    ->orWhereHas('starship', function ($subQ) {
-                        $subQ->where('name', 'ilike', '%' . $this->search . '%');
-                    });
+                    ->orWhereHas('starship', function ($subQ) use ($searchTerm) {
+                        $subQ->where('name', 'LIKE', $searchTerm);
+                    })
+                    ->orWhereRaw('id::text LIKE ?', ["{$this->search}%"])
+                    ->orWhereRaw("LPAD(id::text, 4, '0') LIKE ?", ["{$this->search}%"]);
+
+                // Búsqueda por fecha (intenta parsear si el search parece una fecha)
+                try {
+                    if (preg_match('/^\d{1,4}[-\/\.]\d{1,2}[-\/\.]\d{1,4}$/', $this->search)) {
+                        $date = \Carbon\Carbon::parse($this->search)->format('Y-m-d');
+                        $q->orWhereDate('departure_date', $date);
+                    }
+                } catch (\Exception $e) {
+                    // Si falla el parseo no añadimos el filtro de fecha
+                }
             });
         }
 
@@ -708,7 +766,13 @@ class ManageFlights extends Component
             $query->where('status', $this->statusFilter);
         }
 
-        $flights = $query->orderBy('departure_date', $this->sortDir)->get();
+        if ($this->dateFilter) {
+            $query->whereDate('departure_date', $this->dateFilter);
+        }
+
+        $flights = $query->orderBy('departure_date', $this->sortDir)
+                         ->orderBy('id', 'desc')
+                         ->paginate($this->getPerPage());
 
         $widgets = [
             'today' => Flight::whereDate('departure_date', Carbon::today())->count(),
@@ -729,7 +793,7 @@ class ManageFlights extends Component
 
     public function toggleSort()
     {
-        $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
+        $this->sortDir = $this->sortDir === 'desc' ? 'asc' : 'desc';
     }
 
     public function setCreateMode()
@@ -760,11 +824,25 @@ class ManageFlights extends Component
         $this->search = '';
         $this->periodFilter = 'all';
         $this->statusFilter = 'all';
+        $this->dateFilter = '';
+        if (method_exists($this, 'resetPage')) {
+            $this->resetPage();
+        }
     }
 
     public function viewDetails($id)
     {
-        $this->selectedFlight = Flight::with(['starship', 'destination'])->find($id);
+        $this->selectedFlight = Flight::with(['starship', 'destination', 'origin'])
+            ->withCount([
+                'reservations',
+                'reservations as nova_booked' => function ($q) {
+                    $q->where('seat_type', 'LIKE', 'Nova')->whereNotIn('status', ['Cancelada', 'Cancelled']);
+                },
+                'reservations as supernova_booked' => function ($q) {
+                    $q->where('seat_type', 'LIKE', 'Supernova')->whereNotIn('status', ['Cancelada', 'Cancelled']);
+                }
+            ])->find($id);
+
         if ($this->selectedFlight) {
             $this->showDetailsModal = true;
         }
@@ -1006,9 +1084,10 @@ class ManageFlights extends Component
                 foreach ($affectedGestors as $gestor) {
                     $passengerNames = $flight->reservations()
                         ->whereNotIn('status', ['Cancelada', 'Cancelled'])
-                        ->join('users', 'reservations.user_id', '=', 'users.id')
-                        ->where('users.assigned_manager_id', $gestor->id)
-                        ->pluck('users.name')
+                        ->whereHas('user', fn($q) => $q->where('assigned_manager_id', $gestor->id))
+                        ->with('passenger')
+                        ->get()
+                        ->pluck('passenger.full_name')
                         ->unique()
                         ->implode(', ');
 
@@ -1250,14 +1329,19 @@ class ManageFlights extends Component
     /**
      * Returns the unique gestors who have clients with active reservations on a flight.
      */
-    private function getAffectedGestors(int $flightId): \Illuminate\Database\Eloquent\Collection
+    private function getAffectedGestors(int $flightId): \Illuminate\Support\Collection
     {
-        $gestorIds = Reservation::where('flight_id', $flightId)
+        $gestorIds = Reservation::where('space_flight_id', $flightId)
             ->whereNotIn('status', ['Cancelada', 'Cancelled'])
-            ->join('users', 'reservations.user_id', '=', 'users.id')
-            ->whereNotNull('users.assigned_manager_id')
-            ->pluck('users.assigned_manager_id')
+            ->whereHas('user', fn($q) => $q->whereNotNull('assigned_manager_id'))
+            ->with('user')
+            ->get()
+            ->pluck('user.assigned_manager_id')
             ->unique();
+
+        if ($gestorIds->isEmpty()) {
+            return collect();
+        }
 
         return User::whereIn('id', $gestorIds)->where('role', 'gestor')->get();
     }
@@ -1281,16 +1365,6 @@ class ManageFlights extends Component
             // Collect all affected flight IDs
             $flightIds = collect([$outbound?->id, $return?->id])->filter()->values();
 
-            if ($outbound) {
-                $outbound->reservations()->update(['status' => 'Cancelada']);
-                $outbound->update(['status' => 'cancelled']);
-            }
-
-            if ($return) {
-                $return->reservations()->update(['status' => 'Cancelada']);
-                $return->update(['status' => 'cancelled']);
-            }
-
             // ── Crear tareas automáticas a gestores afectados ──────────────
             $affectedGestors = collect();
             foreach ($flightIds as $fid) {
@@ -1313,12 +1387,13 @@ class ManageFlights extends Component
             $flightCode = $outbound?->flight_code ?? $flight->flight_code;
 
             foreach ($affectedGestors as $gestor) {
-                // Obtener pasajeros de este gestor afectados
-                $passengerNames = Reservation::whereIn('flight_id', $flightIds->toArray())
+                // Obtener nombres de pasajeros afectados (antes de cancelar la reserva)
+                $passengerNames = Reservation::whereIn('space_flight_id', $flightIds->toArray())
                     ->whereNotIn('status', ['Cancelada', 'Cancelled'])
-                    ->join('users', 'reservations.user_id', '=', 'users.id')
-                    ->where('users.assigned_manager_id', $gestor->id)
-                    ->pluck('users.name')
+                    ->whereHas('user', fn($q) => $q->where('assigned_manager_id', $gestor->id))
+                    ->with('passenger')
+                    ->get()
+                    ->pluck('passenger.full_name')
                     ->unique()
                     ->implode(', ');
 
@@ -1336,6 +1411,17 @@ class ManageFlights extends Component
                         'cancel_reason' => $this->cancelReason,
                     ],
                 ]);
+            }
+
+            // ── AHORA SÍ: Actualizar estados de reservas y vuelos ──────────
+            if ($outbound) {
+                $outbound->reservations()->update(['status' => 'Cancelada']);
+                $outbound->update(['status' => 'cancelled']);
+            }
+
+            if ($return) {
+                $return->reservations()->update(['status' => 'Cancelada']);
+                $return->update(['status' => 'cancelled']);
             }
 
             $tasksCreated = $affectedGestors->count();

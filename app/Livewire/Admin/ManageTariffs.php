@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use Livewire\WithPagination;
+use App\Traits\HasResponsivePagination;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Validation\Rule;
 use App\Models\Flight;
@@ -14,7 +16,9 @@ use App\Models\PriceLog;
 
 class ManageTariffs extends Component
 {
-    // ── Tab activo ────────────────────────────────────────────────────────────
+    use WithPagination, HasResponsivePagination;
+
+    protected $paginationTheme = 'simple-tailwind';
     public string $activeTab = 'services'; // flights | hotels | terrestrial | services | operational
 
     public string $search = '';
@@ -84,6 +88,7 @@ class ManageTariffs extends Component
             $this->itemType === 'starship_cost_per_au' => Starship::findOrFail($this->itemId)->update(['operational_cost_per_au' => $newPriceFloat]),
             $this->itemType === 'starship_cruise_speed' => Starship::findOrFail($this->itemId)->update(['cruise_speed_au' => $newPriceFloat]),
             $this->itemType === 'starship_crew_hourly' => Starship::findOrFail($this->itemId)->update(['crew_hourly_rate' => $newPriceFloat]),
+            $this->itemType === 'starship_crew_daily' => Starship::findOrFail($this->itemId)->update(['crew_daily_rate' => $newPriceFloat]),
             // Global PriceLog-only entries (no DB row to update, just insert the log)
             default => null,
         };
@@ -110,7 +115,7 @@ class ManageTariffs extends Component
             )
             ->where('departure_date', '>', now())
             ->orderBy('departure_date')
-            ->get();
+            ->paginate($this->getPerPage(), pageName: 'fliPage');
 
         $hotels = Hotel::with('location')
             ->when(
@@ -121,7 +126,7 @@ class ManageTariffs extends Component
                     ->orWhereHas('location', fn($l) => $l->where('name', 'like', "%$search%"))
             )
             ->orderBy('name')
-            ->get();
+            ->paginate($this->getPerPage(), pageName: 'hotPage');
 
         $terrestrialFlights = TerrestrialFlight::with(['originLocation', 'destinationLocation'])
             ->when(
@@ -135,11 +140,11 @@ class ManageTariffs extends Component
             )
             ->where('departure_datetime', '>', now())
             ->orderBy('departure_datetime')
-            ->get();
+            ->paginate($this->getPerPage(), pageName: 'terPage');
 
         $locations = Location::orderBy('name')
             ->when($search, fn($q) => $q->where('name', 'like', "%$search%")->orWhere('code', 'like', "%$search%"))
-            ->get();
+            ->paginate($this->getPerPage(), pageName: 'locPage');
 
         $starships = Starship::where('status', '!=', 'retired')->orderBy('name')->get();
 
@@ -149,21 +154,21 @@ class ManageTariffs extends Component
                 'type' => 'training',
                 'label' => 'Iris Training',
                 'price' => PriceLog::getCurrentPrice('training'),
-                'unit' => '$',
+                'unit' => '€',
                 'desc' => 'Tasa fija por pasajero — Cualificación espacial',
             ],
             [
                 'type' => 'passport_management',
                 'label' => 'Gestión Pasaporte Espacial',
                 'price' => PriceLog::getCurrentPrice('passport_management'),
-                'unit' => '$',
+                'unit' => '€',
                 'desc' => 'Tasa fija — Visados y tasas gubernamentales',
             ],
             [
                 'type' => 'refund_insurance',
                 'label' => 'Seguro de Reembolso',
                 'price' => PriceLog::getCurrentPrice('refund_insurance'),
-                'unit' => '%',
+                'unit' => '€',
                 'desc' => 'Porcentaje sobre el total de la reserva',
             ],
         ];
@@ -186,26 +191,34 @@ class ManageTariffs extends Component
                     [
                         'type' => 'starship_cost_per_au',
                         'label' => 'Coste Base por AU',
-                        'icon' => '🚀',
+                        'icon' => '',
                         'price' => $ship->operational_cost_per_au,
                         'unit' => '€/AU',
                         'desc' => 'Gasto de combustible y mantenimiento por Unidad Astronómica',
                     ],
                     [
                         'type' => 'starship_cruise_speed',
-                        'label' => 'Velocidad de Crucero',
-                        'icon' => '⏱️',
+                        'label' => 'Velocidad de nave',
+                        'icon' => '',
                         'price' => $ship->cruise_speed_au,
                         'unit' => 'h/AU',
                         'desc' => 'Duración del viaje estimada por Unidad Astronómica',
                     ],
                     [
                         'type' => 'starship_crew_hourly',
-                        'label' => 'Tarifa Tripulación (Hora)',
-                        'icon' => '👨‍✈️',
+                        'label' => 'T.Tripulación (Hora)',
+                        'icon' => '',
                         'price' => $ship->crew_hourly_rate,
                         'unit' => '€/h',
                         'desc' => 'Coste monetario de la tripulación por cada hora de vuelo',
+                    ],
+                    [
+                        'type' => 'starship_crew_daily',
+                        'label' => 'T.Tripulación (Día)',
+                        'icon' => '',
+                        'price' => $ship->crew_daily_rate,
+                        'unit' => '€/d',
+                        'desc' => 'Coste monetario de la tripulación por jornada completa',
                     ],
                 ]
             ];
@@ -233,21 +246,21 @@ class ManageTariffs extends Component
     {
         $logs = PriceLog::with('admin')->orderBy('created_at', 'desc')->get();
         $filename = "audit_logs_" . date('Ymd_His') . ".csv";
-        
+
         $headers = [
-            "Content-type"        => "text/csv",
+            "Content-type" => "text/csv",
             "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
         ];
-        
-        $callback = function() use($logs) {
+
+        $callback = function () use ($logs) {
             $file = fopen('php://output', 'w');
             // Adding BOM for Excel UTF-8 compatibility
             fputs($file, "\xEF\xBB\xBF");
             fputcsv($file, ['ID', 'Admin', 'Tipo/Entidad', 'Item ID', 'Precio Anterior', 'Precio Nuevo', 'Motivo', 'Fecha']);
-            
+
             foreach ($logs as $log) {
                 fputcsv($file, [
                     $log->id,
@@ -262,7 +275,7 @@ class ManageTariffs extends Component
             }
             fclose($file);
         };
-        
+
         return Response::streamDownload($callback, $filename, $headers);
     }
 }

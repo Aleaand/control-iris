@@ -2,7 +2,7 @@
     <div class="w-full">
     
     {{-- ══ HEADER ══ --}}
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-[var(--neon-violet)]/30 pb-4">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-[var(--neon-violet)] mb-4">
         <div>
             <h2 class="text-3xl font-bold text-[var(--neon-violet)] tracking-tight uppercase flex items-center gap-3">
                 Tarifario Maestro
@@ -24,6 +24,28 @@
 
     {{-- Sub-Navigation & Search --}}
     <div class="flex flex-col lg:flex-row gap-6 items-center">
+        {{-- Tab Navigation --}}
+        <div class="flex bg-[var(--tech-input-bg)] p-1 rounded-[12px] border border-[var(--border-glass)] w-full lg:w-fit overflow-x-auto no-scrollbar scroll-smooth">
+            @foreach([
+                'flights'      => ['label' => 'Vuelos Esp.', 'count' => count($flights)],
+                'hotels'       => ['label' => 'Hoteles',     'count' => count($hotels)],
+                'terrestrial'  => ['label' => 'Vuelos Terr.', 'count' => count($terrestrialFlights)],
+                'transfers'    => ['label' => 'Traslados',         'count' => count($locations)],
+                'services'     => ['label' => 'Servicios',   'count' => count($globalServices)],
+                'operational'  => ['label' => 'Costes Naves',      'count' => count($operationalRates) + count($starships)],
+            ] as $tab => $meta)
+                <button wire:click="$set('activeTab', '{{ $tab }}')"
+                    class="px-3 md:px-4 py-2 rounded-[10px] text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 whitespace-nowrap
+                        {{ $activeTab === $tab ? 'bg-[var(--neon-violet)] text-black shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' }}">
+                    {{ $meta['label'] }}
+                    <span class="text-[9px] px-1.5 py-0.5 rounded-full font-mono font-bold
+                        {{ $activeTab === $tab ? 'bg-black/20 text-black' : 'bg-[var(--tech-hover-bg)] text-[var(--text-secondary)]' }}">
+                        {{ $meta['count'] }}
+                    </span>
+                </button>
+            @endforeach
+        </div>
+
         <div class="flex-1 flex flex-col md:flex-row gap-3 w-full">
             {{-- Search Bar --}}
             <div class="relative flex-1">
@@ -39,30 +61,10 @@
         </div>
     </div>
 
-    <div class="py-6 grid grid-cols-1 xl:grid-cols-5 gap-6">
-        <div class="xl:col-span-3 space-y-6">
+    <div class="py-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div class="lg:col-span-3 space-y-6">
 
-            {{-- Tab Navigation --}}
-            <div class="flex bg-[var(--tech-input-bg)] p-1 rounded-[12px] border border-[var(--border-glass)] w-full lg:w-fit overflow-x-auto no-scrollbar scroll-smooth">
-                @foreach([
-                    'flights'      => ['label' => 'Vuelos Esp.', 'count' => count($flights)],
-                    'hotels'       => ['label' => 'Hoteles',     'count' => count($hotels)],
-                    'terrestrial'  => ['label' => 'Vuelos Terr.', 'count' => count($terrestrialFlights)],
-                    'transfers'    => ['label' => 'Traslados',         'count' => count($locations)],
-                    'services'     => ['label' => 'Servicios',   'count' => count($globalServices)],
-                    'operational'  => ['label' => 'Costes Naves',      'count' => count($operationalRates) + count($starships)],
-                ] as $tab => $meta)
-                    <button wire:click="$set('activeTab', '{{ $tab }}')"
-                        :class="activeTab === '{{ $tab }}' ? 'bg-[var(--neon-violet)] text-black shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'"
-                        class="px-3 md:px-4 py-2 rounded-[10px] text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 whitespace-nowrap
-                            {{ $activeTab === $tab ? 'bg-[var(--neon-violet)] text-black shadow-lg' : '' }}">
-                        {{ $meta['label'] }}
-                        <span class="text-[9px] {{ $activeTab === $tab ? 'bg-black/20 text-black' : 'bg-[var(--tech-hover-bg)] text-[var(--text-secondary)]' }} px-1.5 py-0.5 rounded-full font-mono font-bold">
-                            {{ $meta['count'] }}
-                        </span>
-                    </button>
-                @endforeach
-            </div>
+
 
             {{-- ── VUELOS ESPACIALES ── --}}
             @if($activeTab === 'flights')
@@ -75,7 +77,7 @@
                         <table class="w-full text-[11px] text-left">
                             <thead class="bg-[var(--tech-input-bg)]/50 border-b border-[var(--border-glass)] text-[var(--text-secondary)] uppercase tracking-widest">
                                 <tr>
-                                    <th class="px-5 py-3 font-bold">Misión / Destino</th>
+                                    <th class="px-5 py-3 font-bold">Vuelo / Destino</th>
                                     <th class="px-5 py-3 font-bold">Lanzamiento</th>
                                     <th class="px-5 py-3 text-right font-bold">Clase Nova</th>
                                     <th class="px-5 py-3 text-right font-bold">Supernova (x2.5)</th>
@@ -93,15 +95,15 @@
                                             {{ $flight->departure_date?->format('d M Y') }}
                                         </td>
                                         <td class="px-5 py-4 text-right">
-                                            <span class="text-[var(--text-primary)] font-bold font-mono">€{{ number_format($flight->base_price, 0, ',', '.') }}</span>
+                                            <span class="text-[var(--text-primary)] font-bold font-mono">{{ number_format($flight->base_price, 0, ',', '.') }}€</span>
                                         </td>
                                         <td class="px-5 py-4 text-right text-[var(--neon-rose)]/70 font-mono">
-                                            €{{ number_format($flight->base_price * 2.5, 0, ',', '.') }}
+                                            {{ number_format($flight->base_price * 2.5, 0, ',', '.') }}€
                                         </td>
                                         <td class="px-3 py-4 text-right">
                                             <button type="button"
                                                 wire:click="openUpdateModal('flight', {{ $flight->id }}, '#{{ $flight->flight_code }} → {{ $flight->destination?->name }}', {{ $flight->base_price }}, '€')"
-                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-violet)]/30 text-[var(--neon-violet)] hover:bg-[var(--neon-violet)] hover:text-black transition-colors" title="Actualizar">
+                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-amber)] text-[var(--neon-amber)] hover:bg-[var(--neon-amber)] hover:text-black transition-colors" title="Actualizar">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                                 </svg>
@@ -113,10 +115,12 @@
                                         <td colspan="5" class="px-5 py-12 text-center text-[var(--text-secondary)] text-[10px] uppercase tracking-widest opacity-60">Sin vuelos próximos en el sistema</td>
                                     </tr>
                                 @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    </table>
                 </div>
+                <div class="px-5 border-t border-[var(--border-glass)]">
+                    {{ $flights->links() }}
+                </div>
+            </div>
             @endif
 
             {{-- ── HOTELES ── --}}
@@ -124,13 +128,13 @@
                 <div class="tech-card overflow-hidden">
                     <div class="px-5 py-3 border-b border-[var(--border-glass)] flex items-center gap-2 bg-[var(--tech-input-bg)]">
                         <div class="w-1.5 h-1.5 rounded-full bg-[var(--neon-rose)] animate-pulse"></div>
-                        <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">Alojamiento · Tarifa por Pernoctación</span>
+                        <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">Alojamiento · Tarifa por Noche</span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-[11px] text-left">
                             <thead class="bg-[var(--tech-input-bg)]/50 border-b border-[var(--border-glass)] text-[var(--text-secondary)] uppercase tracking-widest">
                                 <tr>
-                                    <th class="px-5 py-3 font-bold">Establecimiento / Destino</th>
+                                    <th class="px-5 py-3 font-bold">Hotel / Ubicación</th>
                                     <th class="px-5 py-3 font-bold">Clasificación</th>
                                     <th class="px-5 py-3 text-right font-bold">Coste / Noche</th>
                                     <th class="px-3 py-3"></th>
@@ -151,13 +155,13 @@
                                             </div>
                                         </td>
                                         <td class="px-5 py-4 text-right">
-                                            <span class="text-[var(--text-primary)] font-bold font-mono">€{{ number_format($hotel->price_per_night, 0, ',', '.') }}</span>
+                                            <span class="text-[var(--text-primary)] font-bold font-mono">{{ number_format($hotel->price_per_night, 0, ',', '.') }}€</span>
                                             <div class="text-[9px] text-[var(--text-secondary)] opacity-50 uppercase tracking-widest">/ noche</div>
                                         </td>
                                         <td class="px-3 py-4 text-right">
                                             <button type="button"
                                                 wire:click="openUpdateModal('hotel', {{ $hotel->id }}, '{{ addslashes($hotel->name) }}', {{ $hotel->price_per_night }}, '€')"
-                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-violet)]/30 text-[var(--neon-violet)] hover:bg-[var(--neon-violet)] hover:text-black transition-colors" title="Actualizar">
+                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-amber)] text-[var(--neon-amber)] hover:bg-[var(--neon-amber)] hover:text-black transition-colors" title="Actualizar">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                                 </svg>
@@ -169,10 +173,12 @@
                                         <td colspan="4" class="px-5 py-12 text-center text-[var(--text-secondary)] text-[10px] uppercase tracking-widest opacity-60">Sin hoteles registrados</td>
                                     </tr>
                                 @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    </table>
                 </div>
+                <div class="px-5 border-t border-[var(--border-glass)]">
+                    {{ $hotels->links() }}
+                </div>
+            </div>
             @endif
 
             {{-- ── VUELOS TERRESTRES ── --}}
@@ -206,12 +212,12 @@
                                             </div>
                                         </td>
                                         <td class="px-5 py-4 text-right">
-                                            <span class="text-[var(--text-primary)] font-bold font-mono">€{{ number_format($tf->price, 0, ',', '.') }}</span>
+                                            <span class="text-[var(--text-primary)] font-bold font-mono">{{ number_format($tf->price, 0, ',', '.') }}€</span>
                                         </td>
                                         <td class="px-3 py-4 text-right">
                                             <button type="button"
                                                 wire:click="openUpdateModal('terrestrial_flight', {{ $tf->id }}, '{{ addslashes($tf->originLocation?->name) }} → {{ addslashes($tf->destinationLocation?->name) }}', {{ $tf->price }}, '€')"
-                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-violet)]/30 text-[var(--neon-violet)] hover:bg-[var(--neon-violet)] hover:text-black transition-colors" title="Actualizar">
+                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-amber)] text-[var(--neon-amber)] hover:bg-[var(--neon-amber)] hover:text-black transition-colors" title="Actualizar">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                                 </svg>
@@ -223,10 +229,12 @@
                                         <td colspan="4" class="px-5 py-12 text-center text-[var(--text-secondary)] text-[10px] uppercase tracking-widest opacity-60">Sin vuelos terrestres registrados</td>
                                     </tr>
                                 @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    </table>
                 </div>
+                <div class="px-5 border-t border-[var(--border-glass)]">
+                    {{ $terrestrialFlights->links() }}
+                </div>
+            </div>
             @endif
 
             {{-- ── TRASLADOS VIP POR LOCALIZACIÓN ── --}}
@@ -234,7 +242,7 @@
                 <div class="tech-card overflow-hidden">
                     <div class="px-5 py-3 border-b border-[var(--border-glass)] flex items-center gap-2 bg-[var(--tech-input-bg)]">
                         <div class="w-1.5 h-1.5 rounded-full bg-[var(--neon-violet)] animate-pulse"></div>
-                        <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">Traslados · Protocolo VIP a Spaceport</span>
+                        <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">Traslados Terrestres</span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-[11px] text-left">
@@ -253,12 +261,12 @@
                                             <div class="text-[var(--text-secondary)] text-[10px] mt-0.5 font-mono uppercase tracking-widest">{{ $loc->code }}</div>
                                         </td>
                                         <td class="px-5 py-4 text-right">
-                                            <span class="text-[var(--text-primary)] font-bold font-mono">€{{ number_format($loc->transport_price ?? 0, 0, ',', '.') }}</span>
+                                            <span class="text-[var(--text-primary)] font-bold font-mono">{{ number_format($loc->transport_price ?? 0, 0, ',', '.') }}€</span>
                                         </td>
                                         <td class="px-3 py-4 text-right">
                                             <button type="button"
                                                 wire:click="openUpdateModal('vip_transfer_location', {{ $loc->id }}, '{{ addslashes($loc->name) }}', {{ $loc->transport_price ?? 0 }}, '€')"
-                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-violet)]/30 text-[var(--neon-violet)] hover:bg-[var(--neon-violet)] hover:text-black transition-colors" title="Actualizar">
+                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-amber)] text-[var(--neon-amber)] hover:bg-[var(--neon-amber)] hover:text-black transition-colors" title="Actualizar">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                                 </svg>
@@ -270,10 +278,12 @@
                                         <td colspan="3" class="px-5 py-12 text-center text-[var(--text-secondary)] text-[10px] uppercase tracking-widest opacity-60">Sin ubicaciones configuradas</td>
                                     </tr>
                                 @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    </table>
                 </div>
+                <div class="px-5 border-t border-[var(--border-glass)]">
+                    {{ $locations->links() }}
+                </div>
+            </div>
             @endif
 
             {{-- ── SERVICIOS FIJOS ── --}}
@@ -299,12 +309,12 @@
                                     <div>
                                         <p class="text-[9px] text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Tarifa Vigente</p>
                                         <p class="text-[var(--neon-emerald)] font-mono font-black text-xl">
-                                            {{ $service['unit'] === '%' ? '' : $service['unit'] }}{{ number_format($service['price'], 2, ',', '.') }}{{ $service['unit'] === '%' ? '%' : '' }}
+                                            {{ number_format($service['price'], 2, ',', '.') }}{{ $service['unit'] }}
                                         </p>
                                     </div>
                                     <button type="button"
                                         wire:click="openUpdateModal('{{ $service['type'] }}', 0, '{{ $service['label'] }}', {{ $service['price'] }}, '{{ $service['unit'] }}')"
-                                        class="p-2.5 rounded-lg border border-[var(--neon-violet)]/30 text-[var(--neon-violet)] hover:bg-[var(--neon-violet)] hover:text-black transition-colors" title="Actualizar">
+                                        class="p-2.5 rounded-lg border border-[var(--neon-amber)] text-[var(--neon-amber)] hover:bg-[var(--neon-amber)] hover:text-black transition-colors" title="Actualizar">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                         </svg>
@@ -332,7 +342,7 @@
                                     <span class="text-[11px] font-black text-[var(--text-primary)] uppercase tracking-widest">{{ $shipRates['label'] }}</span>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-px bg-[var(--border-glass)]">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--border-glass)]">
                                 @foreach($shipRates['items'] as $rate)
                                     <div class="bg-[var(--bg-obsidian)] p-5 group hover:bg-[var(--tech-hover-bg)] transition-colors relative">
                                         <p class="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest mb-1">{{ $rate['label'] }}</p>
@@ -341,12 +351,12 @@
                                         <div class="flex items-end justify-between">
                                             <div>
                                                 <p class="text-[var(--neon-cyan)] font-mono font-black text-lg">
-                                                    {{ $rate['unit'] === '€/h' || $rate['unit'] === '€/AU' ? '€' : '' }}{{ number_format($rate['price'], 2, ',', '.') }}<span class="text-[10px] text-[var(--text-secondary)] font-normal ml-0.5 lowercase">{{ str_replace('€', '', $rate['unit']) }}</span>
+                                                    {{ number_format($rate['price'], 2, ',', '.') }}{{ $rate['unit'] === '€/h' || $rate['unit'] === '€/AU' ? '€' : '' }}<span class="text-[10px] text-[var(--text-secondary)] font-normal ml-0.5 lowercase">{{ str_replace('€', '', $rate['unit']) }}</span>
                                                 </p>
                                             </div>
                                             <button type="button"
                                                 wire:click="openUpdateModal('{{ $rate['type'] }}', {{ $shipRates['starship_id'] }}, '{{ addslashes($shipRates['label']) }} - {{ addslashes($rate['label']) }}', {{ $rate['price'] }}, '{{ $rate['unit'] }}')"
-                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-violet)]/30 text-[var(--neon-violet)] hover:bg-[var(--neon-violet)] hover:text-black transition-colors" title="Actualizar">
+                                                class="opacity-0 group-hover:opacity-100 p-2.5 rounded-lg border border-[var(--neon-amber)] text-[var(--neon-amber)] hover:bg-[var(--neon-amber)] hover:text-black transition-colors" title="Actualizar">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                                 </svg>
@@ -365,11 +375,7 @@
             @endif
 
         </div>
-
-        {{-- ══════════════════════════════════════════════════════════════════ --}}
-        {{-- RIGHT: PRICE LOG (col-span-1) --}}
-        {{-- ══════════════════════════════════════════════════════════════════ --}}
-        <div class="xl:col-span-2 space-y-4 lg:sticky lg:top-8 self-start">
+        <div class="lg:col-span-2 space-y-4 lg:sticky lg:top-8 self-start">
             <div class="tech-card overflow-hidden">
                 <div class="px-5 py-3 border-b border-[var(--border-glass)] flex items-center justify-between bg-[var(--tech-input-bg)]">
                     <div class="flex items-center gap-2">
@@ -395,7 +401,7 @@
                                     <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-[5px] border
                                         {{ in_array($log->item_type, ['flight']) ? 'border-[var(--neon-cyan)]/30 text-[var(--neon-cyan)] bg-[var(--neon-cyan)]/10' : '' }}
                                         {{ in_array($log->item_type, ['hotel']) ? 'border-[var(--neon-rose)]/30 text-[var(--neon-rose)] bg-[var(--neon-rose)]/10' : '' }}
-                                        {{ in_array($log->item_type, ['terrestrial_flight']) ? 'border-[var(--neon-amber)]/30 text-[var(--neon-amber)] bg-[var(--neon-amber)]/10' : '' }}
+                                        {{ in_array($log->item_type, ['terrestrial_flight']) ? 'border-[var(--neon-amber)] text-[var(--neon-amber)] bg-[var(--neon-amber)]/10' : '' }}
                                         {{ in_array($log->item_type, ['vip_transfer_location']) ? 'border-[var(--neon-violet)]/30 text-[var(--neon-violet)] bg-[var(--neon-violet)]/10' : '' }}
                                         {{ in_array($log->item_type, ['training','passport_management','refund_insurance']) ? 'border-[var(--neon-emerald)]/30 text-[var(--neon-emerald)] bg-[var(--neon-emerald)]/10' : '' }}
                                         {{ in_array($log->item_type, ['crew_expense_per_au','hours_per_au','starship_cost_per_au']) ? 'border-[var(--neon-cyan)]/30 text-[var(--neon-cyan)] bg-[var(--neon-cyan)]/10' : '' }}
@@ -432,7 +438,6 @@
                 @endif
             </div>
 
-            {{-- Security Policy --}}
             <div class="tech-card p-5 bg-[var(--neon-violet)]/5 border-[var(--neon-violet)]/20 shadow-lg relative overflow-hidden group">
                 <div class="absolute -right-4 -top-4 w-20 h-20 bg-[var(--neon-violet)]/10 rounded-full blur-3xl group-hover:bg-[var(--neon-violet)]/20 transition-all"></div>
                 <div class="flex items-center gap-3 mb-4 relative z-10">
@@ -460,76 +465,86 @@
         </div>
     </div>
 
-    {{-- ══════════════════════════════════════════════════════════════════════ --}}
-    {{-- MODAL: ACTUALIZAR TARIFA --}}
-    {{-- ══════════════════════════════════════════════════════════════════════ --}}
-    @if($showUpdateModal)
-        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/20 dark:bg-black/40 backdrop-blur-sm p-4" x-data x-on:keydown.escape.window="$wire.set('showUpdateModal', false)">
-            <div class="border border-black/10 dark:border-white/10 rounded-[15px] max-w-sm w-full overflow-hidden shadow-2xl backdrop-blur-xl bg-white/80 dark:bg-zinc-950/60"
-                @click.away="$wire.set('showUpdateModal', false)">
-                <div class="p-6 border-b border-black/5 dark:border-white/5 flex items-start gap-4">
-                    <div class="w-10 h-10 rounded-full bg-[var(--neon-violet)]/10 border border-[var(--neon-violet)]/30 text-[var(--neon-violet)] flex items-center justify-center shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-1">Ajuste de Parámetros</h3>
-                        <p class="text-zinc-600 dark:text-zinc-300 text-xs leading-relaxed">
-                            Actualizar tarifa de <strong class="text-[var(--neon-violet)]">{{ $itemName }}</strong>. Este registro es inmutable.
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="p-6 space-y-5">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-black/5 dark:bg-white/5 rounded-xl px-4 py-3 text-center">
-                            <p class="text-[8px] text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1">Valor Actual</p>
-                            <p class="text-[var(--text-secondary)] font-mono font-bold text-lg line-through opacity-50">{{ $unit === '%' ? '' : $unit }}{{ number_format($currentPrice, 2, ',', '.') }}{{ $unit === '%' ? '%' : '' }}</p>
+    <div x-data="{ 
+        lockScroll: @entangle('showUpdateModal')
+    }"
+        x-effect="lockScroll ? document.body.classList.add('overflow-hidden') : document.body.classList.remove('overflow-hidden')">
+
+        {{-- Modal Actualizar Tarifa --}}
+        @if($showUpdateModal)
+            <div class="fixed inset-0 z-[500] flex items-center justify-center p-4" x-data x-on:keydown.escape.window="$wire.set('showUpdateModal', false)">
+                <div class="absolute inset-0 bg-[var(--bg-obsidian)]/20 backdrop-blur-md"
+                    wire:click="$set('showUpdateModal', false)"></div>
+
+                <div class="relative border border-[var(--border-glass)] rounded-[24px] max-w-sm w-full overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-[var(--bg-panel)]/90 backdrop-blur-xl animate-tech">
+                    <div class="p-8 border-b border-[var(--border-glass)] flex flex-col items-center text-center gap-4">
+                        <div class="w-14 h-14 rounded-full bg-[var(--neon-amber)]/10 border border-[var(--neon-amber)] text-[var(--neon-amber)] shadow-[0_0_20px_rgba(245,158,11,0.1)] flex items-center justify-center shrink-0">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            </svg>
                         </div>
-                        <div class="bg-[var(--neon-violet)]/5 border border-[var(--neon-violet)]/20 rounded-xl px-4 py-3 text-center">
-                            <p class="text-[8px] text-[var(--neon-violet)] uppercase tracking-[0.2em] mb-1">Nueva Tasa</p>
-                            <p class="text-[var(--neon-violet)] font-mono font-black text-lg">
-                                @if($newPrice && is_numeric($newPrice))
-                                    {{ $unit === '%' ? '' : $unit }}{{ number_format((float)$newPrice, 2, ',', '.') }}{{ $unit === '%' ? '%' : '' }}
-                                @else
-                                    —
-                                @endif
+                        <div>
+                            <h3 class="text-lg font-black text-[var(--text-primary)] uppercase tracking-[0.1em] mb-2">
+                                Ajuste de Parámetros
+                            </h3>
+                            <p class="text-[var(--text-secondary)] text-xs leading-relaxed font-medium">
+                                Actualizar tarifa de <span class="text-[var(--neon-amber)] font-bold uppercase">{{ $itemName }}</span>. Este registro es inmutable y requiere justificación técnica.
                             </p>
                         </div>
                     </div>
+                    
+                    <div class="p-6 space-y-5">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-black/5 dark:bg-white/5 rounded-xl px-4 py-3 text-center">
+                                <p class="text-[8px] text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1">Valor Actual</p>
+                                <p class="text-[var(--text-secondary)] font-mono font-bold text-lg line-through opacity-50">{{ number_format($currentPrice, 2, ',', '.') }}{{ $unit }}</p>
+                            </div>
+                            <div class="bg-[var(--neon-amber)]/5 border border-[var(--neon-amber)]/20 rounded-xl px-4 py-3 text-center">
+                                <p class="text-[8px] text-[var(--neon-amber)] uppercase tracking-[0.2em] mb-1">Nueva Tasa</p>
+                                <p class="text-[var(--neon-amber)] font-mono font-black text-lg">
+                                    @if($newPrice && is_numeric($newPrice))
+                                       {{ number_format((float)$newPrice, 2, ',', '.') }}{{ $unit }}
+                                    @else
+                                        —
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
 
-                    <div class="space-y-2">
-                        <label class="block text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">Magnitud de Cambio ({{ $unit }})</label>
-                        <input type="number" wire:model.live="newPrice" step="0.01" min="0"
-                            class="tech-input w-full px-4 py-3 text-sm font-mono focus:outline-none transition-all rounded-xl"
-                            placeholder="0.00">
-                        @error('newPrice') <span class="text-[var(--neon-rose)] text-[10px] font-bold uppercase tracking-widest mt-1 block">{{ $message }}</span> @enderror
+                        <div class="space-y-2">
+                            <label class="block text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">Cambio ({{ $unit }})</label>
+                            <input type="number" wire:model.live="newPrice" step="0.01" min="0"
+                                class="tech-input w-full px-4 py-3 text-sm font-mono focus:outline-none transition-all rounded-xl"
+                                placeholder="0.00">
+                            @error('newPrice') <span class="text-[var(--neon-rose)] text-[10px] font-bold uppercase tracking-widest mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">
+                                Justificación
+                                <span class="text-[var(--neon-rose)] ml-1">*</span>
+                            </label>
+                            <input type="text" wire:model.live="updateReason"
+                                class="tech-input w-full px-4 py-3 text-xs focus:outline-none transition-all rounded-xl"
+                                >
+                            @error('updateReason') <span class="text-[var(--neon-rose)] text-[10px] font-bold uppercase tracking-widest mt-1 block">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <label class="block text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">
-                            Justificación Técnica
-                            <span class="text-[var(--neon-rose)] ml-1">*</span>
-                        </label>
-                        <input type="text" wire:model.live="updateReason"
-                            class="tech-input w-full px-4 py-3 text-xs focus:outline-none transition-all rounded-xl"
-                            placeholder="Ej. Ajuste por inflación combustible...">
-                        @error('updateReason') <span class="text-[var(--neon-rose)] text-[10px] font-bold uppercase tracking-widest mt-1 block">{{ $message }}</span> @enderror
+                    <div class="flex p-4 gap-3 bg-[var(--tech-input-bg)]">
+                        <button type="button" wire:click="$set('showUpdateModal', false)"
+                            class="flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl border border-[var(--border-glass)] text-[var(--text-secondary)] hover:bg-[var(--tech-hover-bg)] transition-all">
+                            Cancelar
+                        </button>
+                        <button type="button" wire:click="applyUpdate" wire:loading.attr="disabled"
+                            class="flex-1 py-3 px-4 text-[10px] font-black uppercase text-black bg-[var(--neon-amber)] rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all disabled:opacity-50">
+                            Confirmar
+                        </button>
                     </div>
-                </div>
-
-                <div class="flex p-3 gap-3 bg-zinc-100/50 dark:bg-black/30 border-t border-black/5 dark:border-white/5">
-                    <button type="button" wire:click="$set('showUpdateModal', false)"
-                        class="flex-1 py-2.5 px-4 text-xs font-bold uppercase rounded-[10px] border border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white transition-colors backdrop-blur-md">
-                        Abortar
-                    </button>
-                    <button type="button" wire:click="applyUpdate" wire:loading.attr="disabled"
-                        class="flex-1 py-2.5 px-4 text-xs font-bold uppercase text-black bg-[var(--neon-violet)] rounded-[10px] shadow-lg transition-colors border border-[var(--neon-violet)]/50 disabled:opacity-50">
-                        Confirmar
-                    </button>
                 </div>
             </div>
-        </div>
-    @endif
+        @endif
+    </div>
 
 
     <!-- Botón Subir Mobile -->

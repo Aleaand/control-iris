@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Traits\HasResponsivePagination;
 use Livewire\Attributes\Url;
 use App\Models\User;
 use App\Models\Passport;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Mail;
 
 class ManageUsers extends Component
 {
-    use WithPagination;
+    use WithPagination, HasResponsivePagination;
 
     public $roleFilter;
 
@@ -51,8 +52,6 @@ class ManageUsers extends Component
     public $showMigrationModal = false;
     public $migrationTargetGestorId = null;
     public $deleteImpactInfo = [];
-    public $showPasswordModal = false;
-    public $tempPassword = '';
 
     // Control CRUD
     public $isEditing = false;
@@ -89,7 +88,7 @@ class ManageUsers extends Component
         ];
 
         if ($this->roleFilter === 'cliente') {
-            $rules['assigned_manager_id'] = 'nullable|exists:users,id';
+            $rules['assigned_manager_id'] = 'required|exists:users,id';
         }
 
         return $rules;
@@ -108,7 +107,16 @@ class ManageUsers extends Component
         $this->email = '';
         $this->phone = '';
         $this->birth_date = '';
-        $this->assigned_manager_id = null;
+        if ($this->roleFilter === 'cliente') {
+            // Default to the gestor with the fewest clients for balanced distribution
+            $bestGestor = User::where('role', 'gestor')
+                ->withCount('clients')
+                ->orderBy('clients_count', 'asc')
+                ->first();
+            $this->assigned_manager_id = $bestGestor ? $bestGestor->id : null;
+        } else {
+            $this->assigned_manager_id = null;
+        }
 
         $this->has_passport = false;
         $this->passport_number = '';
@@ -136,33 +144,28 @@ class ManageUsers extends Component
         $this->showMigrationModal = false;
         $this->migrationTargetGestorId = null;
         $this->deleteImpactInfo = [];
-
-        // Note: we don't reset showPasswordModal here so it persists after creation
-        // but we ensure it's false when starting other flows.
-    }
-
-    public function clearPasswordModal()
-    {
-        $this->showPasswordModal = false;
-        $this->tempPassword = '';
     }
 
     public function updatedClientSearch()
     {
+        $query = User::query()->where('role', 'cliente');
+
         if (strlen($this->clientSearch) > 1) {
-            $this->clientSearchResults = User::query()
-                ->where('role', 'cliente')
-                ->where(function ($q) {
-                    $q->where('email', 'like', '%' . $this->clientSearch . '%')
-                      ->orWhere('id', 'like', $this->clientSearch . '%');
-                })
-                ->with('manager')
-                ->take(5)
-                ->get()
-                ->toArray();
+            $searchTerm = '%' . strtolower($this->clientSearch) . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereRaw('LOWER(email) LIKE ?', [$searchTerm])
+                  ->orWhereRaw('LOWER(name) LIKE ?', [$searchTerm])
+                  ->orWhereRaw('id::text LIKE ?', [$searchTerm]);
+            });
         } else {
-            $this->clientSearchResults = [];
+            // Sugerencias: Clientes que no tienen gestor asignado
+            $query->whereNull('assigned_manager_id');
         }
+
+        $this->clientSearchResults = $query->with('manager')
+            ->take(5)
+            ->get()
+            ->toArray();
     }
 
     public function requestAddClient($clientId)
@@ -173,7 +176,7 @@ class ManageUsers extends Component
             return;
         }
         
-        $client = User::with('manager')->find($clientId);
+        $client = User::with('manager')->where('role', 'cliente')->find($clientId);
         if ($client) {
             if ($client->manager && $client->manager->id !== $this->userId) {
                 $this->pendingClientOverride = $client;
@@ -203,7 +206,8 @@ class ManageUsers extends Component
     {
         $mngrName = 'N/A';
         if (is_array($client)) {
-            $clientModel = User::with('manager')->find($client['id']);
+            $clientModel = User::with('manager')->where('role', 'cliente')->find($client['id']);
+            if (!$clientModel) return; // Role check safety
             $mngrName = $clientModel->manager ? $clientModel->manager->name : 'N/A';
             $this->assignedClients[] = [
                 'id' => $client['id'],
@@ -233,7 +237,8 @@ class ManageUsers extends Component
     {
         $query = User::query()
             ->where('role', $this->roleFilter)
-            ->with(['passengers', 'manager', 'clients']);
+            ->with(['passengers', 'manager', 'clients'])
+            ->withCount('clients');
 
         if ($this->filterManagerId && $this->roleFilter === 'cliente') {
             $query->where('assigned_manager_id', $this->filterManagerId);
@@ -244,15 +249,15 @@ class ManageUsers extends Component
         }
 
         if ($this->search) {
-            $query->where(function($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('email', 'like', '%' . $this->search . '%')
-                  ->orWhere('id', 'like', $this->search . '%')
-                  ->orWhere('phone', 'like', '%' . $this->search . '%');
+            $searchTerm = '%' . strtolower($this->search) . '%';
+            $query->where(function($q) use ($searchTerm) {
+                $q->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
+                  ->orWhereRaw('LOWER(email) LIKE ?', [$searchTerm])
+                  ->orWhereRaw('id::text LIKE ?', [$searchTerm]);
             });
         }
 
-        $users = $query->orderBy('name', $this->sortDir)->paginate(10);
+        $users = $query->orderBy('name', $this->sortDir)->paginate($this->getPerPage());
         // Load available managers so we can assign clients (Only useful when editing a client)
         $managers = [];
         $availableGestors = [];
@@ -312,6 +317,8 @@ class ManageUsers extends Component
                 })->toArray();
             }
         }
+
+        $this->updatedClientSearch();
     }
 
     public function updatedName($value)
@@ -392,11 +399,8 @@ class ManageUsers extends Component
                 session()->flash('message', "{$t} actualizado correctamente.");
             }
         } else {
-            $rawPassword = \Illuminate\Support\Str::random(12);
-            $this->tempPassword = $rawPassword;
-            
-            $data['password'] = \Illuminate\Support\Facades\Hash::make($rawPassword);
-            $data['must_change_password'] = $rawPassword; // stored plain so user can log in; cleared after they set own password
+            // Create user with a random unusable password — they will set it themselves via reset link
+            $data['password'] = \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32));
             $data['role'] = $this->roleFilter;
             $user = User::create($data);
 
@@ -404,17 +408,17 @@ class ManageUsers extends Component
                 $this->syncClients($user);
             }
 
-            // Send Welcome Email
+            // Send password setup link (welcome email for new gestors)
             try {
-                Mail::to($user->email)->send(new \App\Mail\WelcomeUserMail($user, $rawPassword));
+                $token = app('auth.password.broker')->createToken($user);
+                $user->notify(new \App\Notifications\GestorWelcomeNotification($token));
             } catch (\Exception $e) {
-                Log::error("Error enviando email de bienvenida: " . $e->getMessage());
-                session()->flash('error', 'El usuario fue creado pero no se pudo enviar el correo de bienvenida. Revisa la configuración de SMTP.');
+                Log::error("Error enviando email de bienvenida al gestor: " . $e->getMessage());
+                session()->flash('error', 'El usuario fue creado pero no se pudo enviar el correo de configuración. Revisa la configuración de SMTP.');
             }
 
-            $this->showPasswordModal = true;
             $t = ucfirst($this->roleFilter);
-            session()->flash('message', "{$t} registrado con éxito. Contraseña generada y enviada por email.");
+            session()->flash('message', "{$t} registrado con éxito. Se ha enviado un enlace de configuración de contraseña a {$user->email}.");
         }
 
         $this->resetInputFields();
@@ -431,9 +435,11 @@ class ManageUsers extends Component
                 ->update(['assigned_manager_id' => null]);
         }
         
-        // 2. Assign selected clients
+        // 2. Assign selected clients (Strictly only 'cliente' role)
         if (!empty($keptIds)) {
-            User::whereIn('id', $keptIds)->update(['assigned_manager_id' => $gestor->id]);
+            User::whereIn('id', $keptIds)
+                ->where('role', 'cliente')
+                ->update(['assigned_manager_id' => $gestor->id]);
         }
     }
 
@@ -447,20 +453,15 @@ class ManageUsers extends Component
     {
         $user = User::find($id);
         if ($user) {
-            $rawPassword = \Illuminate\Support\Str::random(12);
-            $this->tempPassword = $rawPassword;
-            $user->password = \Illuminate\Support\Facades\Hash::make($rawPassword);
-            $user->must_change_password = $rawPassword;
-            $user->save();
-
+            // Send a fresh password reset link instead of generating a visible temp password
             try {
-                Mail::to($user->email)->send(new \App\Mail\WelcomeUserMail($user, $rawPassword));
+                $token = app('auth.password.broker')->createToken($user);
+                $user->sendPasswordResetNotification($token);
+                session()->flash('message', "Enlace de restablecimiento de contraseña enviado a {$user->email}.");
             } catch (\Exception $e) {
                 Log::error("Error enviando email de reseteo: " . $e->getMessage());
+                session()->flash('error', 'No se pudo enviar el correo. Revisa la configuración de SMTP.');
             }
-
-            $this->showPasswordModal = true;
-            session()->flash('message', "Clave de acceso de emergencia regenerada con éxito para {$user->name} y enviada por email.");
         }
     }
 

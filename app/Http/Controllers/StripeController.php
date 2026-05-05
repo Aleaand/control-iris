@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reservation;
+use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Stripe\Stripe;
 use Stripe\Webhook;
@@ -49,14 +51,21 @@ class StripeController extends Controller
 
                 // ⚠️ Confirmar TODAS las filas del grupo (no solo la primera)
                 // Anti-paradoja: solo actualizamos filas que AÚN NO están pagadas
-                Reservation::where('booking_group_id', $groupId)
+                $toUpdate = Reservation::with('logistics', 'passenger')
+                    ->where('booking_group_id', $groupId)
                     ->where('payment_status', '!=', 'paid')
-                    ->update([
+                    ->get();
+
+                foreach ($toUpdate as $res) {
+                    $res->update([
                         'payment_status'     => 'paid',
                         'status'             => 'Confirmada',
                         'paid_at'            => now(),
                         'stripe_receipt_url' => $receiptUrl,
                     ]);
+
+                    $this->automateTasks($res);
+                }
             }
         }
 
@@ -108,27 +117,59 @@ class StripeController extends Controller
 
                 if ($groupId) {
                     // Anti-paradoja adenda: solo actualizamos filas AÚN NO pagadas
-                    Reservation::where('booking_group_id', $groupId)
+                    $toUpdate = Reservation::with('logistics', 'passenger')
+                        ->where('booking_group_id', $groupId)
                         ->where('payment_status', '!=', 'paid')
-                        ->update([
+                        ->get();
+
+                    foreach ($toUpdate as $res) {
+                        $res->update([
                             'payment_status' => 'paid',
                             'status'         => 'Confirmada',
                             'paid_at'        => now(),
                         ]);
+                        $this->automateTasks($res);
+                    }
                 } else {
                     // Fallback individual (reservas antiguas sin group_id en metadata)
-                    $reservation = Reservation::where('stripe_session_id', $session->id)->first();
-                    if ($reservation) {
+                    $reservation = Reservation::with('logistics', 'passenger')
+                        ->where('stripe_session_id', $session->id)
+                        ->first();
+                    if ($reservation && $reservation->payment_status !== 'paid') {
                         $reservation->update([
                             'payment_status' => 'paid',
                             'status'         => 'Confirmada',
                             'paid_at'        => now(),
                         ]);
+                        $this->automateTasks($reservation);
                     }
                 }
             }
         }
 
         return response('', 200);
+    }
+
+    private function automateTasks(Reservation $reservation)
+    {
+        // 1. Gestión de Pasaporte
+        if ($reservation->logistics?->passport_management_included) {
+            $gestor = $reservation->user?->assignedManager ?? User::where('role', 'gestor')->first();
+            if ($gestor) {
+                Task::create([
+                    'assigned_gestor_id' => $gestor->id,
+                    'created_by'         => auth()->id() ?? $gestor->id,
+                    'title'              => 'Gestión de Pasaporte: ' . ($reservation->passenger?->full_name ?? 'Pasajero'),
+                    'description'        => "Trámite de pasaporte requerido para la reserva {$reservation->id_locator}. Pago confirmado.",
+                    'type'               => 'general',
+                    'priority'           => 'alta',
+                    'payload'            => [
+                        'reservation_id' => $reservation->id,
+                        'passenger_id'   => $reservation->passenger_id,
+                        'locator'        => $reservation->id_locator,
+                    ]
+                ]);
+            }
+        }
     }
 }

@@ -3,18 +3,24 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use Livewire\WithPagination;
+use App\Traits\HasResponsivePagination;
 use App\Models\TerrestrialFlight;
 use App\Models\Location;
 use App\Models\PriceLog;
 
 class ManageTerrestrialFlights extends Component
 {
+    use WithPagination, HasResponsivePagination;
     public $origin_id, $destination_id, $departure_datetime, $arrival_datetime, $price;
     public $baggage_price;
     public $executive_capacity = 20;
     public $status = 'Programado';
     public $isEditing = false, $flightId;
     public $search = '';
+    public $searchDate = '';
+    public $searchOriginId = '';
+    public $searchDestinationId = '';
     public $flightDurationHours = 0;
     public $airline = '';
     public $sortDir = 'asc';
@@ -69,22 +75,41 @@ class ManageTerrestrialFlights extends Component
         $query = TerrestrialFlight::query()->with(['originLocation', 'destinationLocation']);
 
         if ($this->search) {
-            $query->where('airline', 'like', '%' . $this->search . '%')
-                ->orWhereHas('originLocation', function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('code', 'like', '%' . $this->search . '%');
-                })
-                ->orWhereHas('destinationLocation', function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('code', 'like', '%' . $this->search . '%');
-                });
+            $searchTerm = '%' . strtolower($this->search) . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereRaw('LOWER(airline) LIKE ?', [$searchTerm])
+                    ->orWhereRaw('LOWER(flight_number) LIKE ?', [$searchTerm])
+                    ->orWhereRaw("LPAD(id::text, 4, '0') LIKE ?", ["%{$this->search}%"])
+                    ->orWhereRaw('id::text LIKE ?', ["%{$this->search}%"])
+                    ->orWhereHas('originLocation', function ($sub) use ($searchTerm) {
+                        $sub->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
+                            ->orWhereRaw('LOWER(code) LIKE ?', [$searchTerm]);
+                    })
+                    ->orWhereHas('destinationLocation', function ($sub) use ($searchTerm) {
+                        $sub->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
+                            ->orWhereRaw('LOWER(code) LIKE ?', [$searchTerm]);
+                    });
+            });
         }
 
-        $flights = $query->orderBy('departure_datetime', $this->sortDir)->get();
+        if ($this->searchDate) {
+            $query->whereDate('departure_datetime', $this->searchDate);
+        }
+
+        if ($this->searchOriginId) {
+            $query->where('origin_id', $this->searchOriginId);
+        }
+
+        if ($this->searchDestinationId) {
+            $query->where('destination_id', $this->searchDestinationId);
+        }
+
+        $flights = $query->orderBy('departure_datetime', $this->sortDir)->paginate($this->getPerPage());
         $locations = Location::orderBy('name', 'asc')->get();
 
         return view('livewire.admin.manage-terrestrial-flights', [
             'flights' => $flights,
+            'terrestrialFlights' => $flights,
             'locations' => $locations
         ])->layout('layouts.app');
     }
@@ -92,6 +117,21 @@ class ManageTerrestrialFlights extends Component
     public function toggleSort()
     {
         $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
+    }
+
+    public function swapSearchLocations()
+    {
+        $temp = $this->searchOriginId;
+        $this->searchOriginId = $this->searchDestinationId;
+        $this->searchDestinationId = $temp;
+    }
+
+    public function resetFilters()
+    {
+        $this->search = '';
+        $this->searchDate = '';
+        $this->searchOriginId = '';
+        $this->searchDestinationId = '';
     }
 
     public function setCreateMode()

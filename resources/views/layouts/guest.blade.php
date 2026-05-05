@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Iris Aerospace') }} — Autenticación</title>
+    <title>Iris Aerospace - Control</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -24,43 +24,56 @@
         applyTheme();
         document.addEventListener('livewire:navigated', applyTheme);
     </script>
+    <style>
+        html,
+        body {
+            background-color: #0a0a0f !important;
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
     @vite(['resources/css/app.css', 'resources/css/obsidian-design.css', 'resources/js/app.js'])
 </head>
 
-<body class="font-sans antialiased obsidian-bg" style="color: var(--text-primary)">
-    <div class="min-h-screen flex items-center justify-center p-4">
-        <!-- Background grid -->
-        <div class="absolute inset-0 opacity-[0.03]" style="background-image: linear-gradient(var(--text-primary) 1px, transparent 1px), linear-gradient(90deg, var(--text-primary) 1px, transparent 1px); background-size: 40px 40px;"></div>
+<body class="font-sans antialiased obsidian-bg" style="color: var(--text-primary); background-color: #0a0a0f;">
+    <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <!-- Nebula Background -->
+        <div class="nebula-container">
+            <div class="nebula-cloud cloud-1"></div>
+            <div class="nebula-cloud cloud-2"></div>
+            <div class="nebula-cloud cloud-3"></div>
+        </div>
 
         <div class="relative w-full max-w-md">
-            <!-- Glow effect -->
-            <div class="absolute -inset-1 bg-gradient-to-r from-[var(--neon-cyan)]/20 via-[var(--neon-emerald)]/20 to-[var(--neon-cyan)]/20 rounded-2xl blur-xl"></div>
+            <!-- Subtle accent glow -->
+            <div class="absolute -inset-2 bg-[var(--neon-cyan)]/5 rounded-2xl blur-2xl"></div>
 
             <div class="tech-card relative p-8 rounded-2xl" style="border-color: rgba(14, 165, 233, 0.2);">
                 <!-- Top accent bar -->
-                <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[var(--neon-cyan)] to-transparent rounded-t-2xl"></div>
+                <div
+                    class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[var(--neon-cyan)] to-transparent rounded-t-2xl">
+                </div>
 
                 <!-- Logo & heading -->
                 <div class="text-center mb-8">
                     <div class="flex justify-center mb-4">
-                        <a href="/" wire:navigate class="block w-20 h-20 rounded-2xl bg-[var(--neon-cyan)]/5 border border-[var(--neon-cyan)]/20 flex items-center justify-center hover:bg-[var(--neon-cyan)]/10 transition-colors shadow-[0_0_15px_rgba(14,165,233,0.1)]">
-                            <script>
-                                document.write('<img src="' + (localStorage.getItem('theme') === 'light' ? '{{ asset('assets/logo_iris_black.png') }}' : '{{ asset('assets/logo_iris.png') }}') + '" alt="Iris Aerospace" class="h-10">');
-                            </script>
-                            <noscript>
-                                <img src="{{ asset('assets/logo_iris.png') }}" alt="Iris Aerospace" class="h-10">
-                            </noscript>
+                        <a href="/" wire:navigate
+                            class="block w-24 h-24 flex items-center justify-center transition-transform hover:scale-110">
+                            <img src="{{ asset('assets/logo_iris.png') }}" alt="Iris Aerospace" class="h-14 logo-dark">
                         </a>
                     </div>
-                    <h1 class="text-xl font-black uppercase tracking-[0.2em] text-[var(--neon-cyan)] mb-1">Terminal de Acceso</h1>
-                    <p class="font-mono-tech text-[10px] text-[var(--text-secondary)] uppercase tracking-widest">Iris Aerospace — Protocolo de Identificación</p>
+                    <h1 class="text-2xl font-black text-white mb-1">¡Bienvenido a Iris Aerospace!</h1>
+                    <p class="font-mono-tech text-[10px] text-[var(--text-secondary)] uppercase tracking-widest">Control
+                        de Acceso Privado</p>
                 </div>
 
                 {{ $slot }}
 
                 <div class="mt-6 text-center">
                     <p class="font-mono-tech text-[9px] text-zinc-600 uppercase tracking-widest">
-                        Iris Aerospace · Red Privada
+                        Iris Aerospace · Control Privado
                     </p>
                 </div>
             </div>

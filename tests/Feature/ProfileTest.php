@@ -62,6 +62,7 @@ test('user can delete their account', function () {
 
     $component = Volt::test('profile.delete-user-form')
         ->set('password', 'password')
+        ->set('confirmation', 'CONFIRMAR_BORRAR_CUENTA')
         ->call('deleteUser');
 
     $component
@@ -69,7 +70,7 @@ test('user can delete their account', function () {
         ->assertRedirect('/');
 
     $this->assertGuest();
-    $this->assertNull($user->fresh());
+    $this->assertSoftDeleted($user);
 });
 
 test('correct password must be provided to delete account', function () {
@@ -79,6 +80,7 @@ test('correct password must be provided to delete account', function () {
 
     $component = Volt::test('profile.delete-user-form')
         ->set('password', 'wrong-password')
+        ->set('confirmation', 'CONFIRMAR_BORRAR_CUENTA')
         ->call('deleteUser');
 
     $component

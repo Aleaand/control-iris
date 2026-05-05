@@ -10,7 +10,7 @@ test('registration screen can be rendered', function () {
     $response
         ->assertOk()
         ->assertSeeVolt('pages.auth.register');
-});
+})->skip('Registration disabled');
 
 test('new users can register', function () {
     $component = Volt::test('pages.auth.register')
@@ -24,4 +24,4 @@ test('new users can register', function () {
     $component->assertRedirect(route('dashboard', absolute: false));
 
     $this->assertAuthenticated();
-});
+})->skip('Registration disabled');

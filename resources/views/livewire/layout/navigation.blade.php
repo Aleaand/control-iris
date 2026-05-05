@@ -184,6 +184,40 @@ new class extends Component {
                 </div>
             </div>
 
+            <!-- Usuarios -->
+            <div class="nav-dropdown" @mouseenter="if(!isCollapsed) openUsuarios = true"
+                @mouseleave="openUsuarios = false">
+                <div class="nav-item nav-dropdown-trigger" :class="openUsuarios ? 'active text-orange-500' : ''"
+                    @click="if(isCollapsed) isCollapsed = false; openUsuarios = !openUsuarios">
+                    <div class="flex items-center">
+                        <svg class="nav-icon" :class="openUsuarios ? 'text-orange-500' : ''" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                        </svg>
+                        <span class="nav-text" x-show="!isCollapsed"
+                            x-transition:enter="transition ease-out duration-300"
+                            x-transition:enter-start="opacity-0 -translate-x-2"
+                            x-transition:enter-end="opacity-100 translate-x-0"
+                            x-transition:leave="transition ease-in duration-700" x-transition:leave-start="opacity-100"
+                            x-transition:leave-end="opacity-0">Logistica Usuarios</span>
+                    </div>
+                    <svg class="w-3 h-3 transition-transform nav-dropdown-arrow"
+                        :class="openUsuarios ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        x-show="!isCollapsed">
+                        <path d="M19 9l-7 7-7-7" stroke-width="2"></path>
+                    </svg>
+                </div>
+                <div x-show="openUsuarios && !isCollapsed" x-transition.opacity class="nav-submenu">
+                    <a href="{{ route('admin.users.role', 'gestor') }}" wire:navigate
+                        class="nav-submenu-item hover-orange-2">Gestores</a>
+                    <a href="{{ route('admin.users.role', 'cliente') }}" wire:navigate
+                        class="nav-submenu-item hover-orange-4">Clientes</a>
+                    <a href="{{ route('admin.passengers') }}" wire:navigate
+                        class="nav-submenu-item hover-orange-6">Pasajeros</a>
+                </div>
+            </div>
+
             <!-- Finanzas -->
             <div class="nav-dropdown" @mouseenter="if(!isCollapsed) openFinanzas = true"
                 @mouseleave="openFinanzas = false">
@@ -214,40 +248,6 @@ new class extends Component {
                         Financiera</a>
                     <a href="{{ route('admin.tariffs') }}" wire:navigate
                         class="nav-submenu-item hover-violet-4">Tarifario</a>
-                </div>
-            </div>
-
-            <!-- Usuarios -->
-            <div class="nav-dropdown" @mouseenter="if(!isCollapsed) openUsuarios = true"
-                @mouseleave="openUsuarios = false">
-                <div class="nav-item nav-dropdown-trigger" :class="openUsuarios ? 'active text-orange-500' : ''"
-                    @click="if(isCollapsed) isCollapsed = false; openUsuarios = !openUsuarios">
-                    <div class="flex items-center">
-                        <svg class="nav-icon" :class="openUsuarios ? 'text-orange-500' : ''" viewBox="0 0 24 24"
-                            fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                        </svg>
-                        <span class="nav-text" x-show="!isCollapsed"
-                            x-transition:enter="transition ease-out duration-300"
-                            x-transition:enter-start="opacity-0 -translate-x-2"
-                            x-transition:enter-end="opacity-100 translate-x-0"
-                            x-transition:leave="transition ease-in duration-700" x-transition:leave-start="opacity-100"
-                            x-transition:leave-end="opacity-0">Gobernanza Usuarios</span>
-                    </div>
-                    <svg class="w-3 h-3 transition-transform nav-dropdown-arrow"
-                        :class="openUsuarios ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        x-show="!isCollapsed">
-                        <path d="M19 9l-7 7-7-7" stroke-width="2"></path>
-                    </svg>
-                </div>
-                <div x-show="openUsuarios && !isCollapsed" x-transition.opacity class="nav-submenu">
-                    <a href="{{ route('admin.users.role', 'gestor') }}" wire:navigate
-                        class="nav-submenu-item hover-orange-2">Gestores</a>
-                    <a href="{{ route('admin.users.role', 'cliente') }}" wire:navigate
-                        class="nav-submenu-item hover-orange-4">Clientes</a>
-                    <a href="{{ route('admin.passengers') }}" wire:navigate
-                        class="nav-submenu-item hover-orange-6">Pasajeros</a>
                 </div>
             </div>
 
@@ -345,35 +345,42 @@ new class extends Component {
     <!-- Logout Modal Técnico -->
     <template x-teleport="body">
         <div x-show="showLogoutModal" x-cloak class="fixed inset-0 z-[300] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showLogoutModal = false" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"></div>
-            
-            <div class="tech-card p-8 w-full max-w-sm relative overflow-hidden" 
-                x-show="showLogoutModal" 
-                x-transition:enter="transition ease-out duration-300" 
-                x-transition:enter-start="opacity-0 scale-90" 
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showLogoutModal = false"
+                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"></div>
+
+            <div class="tech-card p-8 w-full max-w-sm relative overflow-hidden" x-show="showLogoutModal"
+                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-90"
                 x-transition:enter-end="opacity-100 scale-100"
                 style="background: #0a0a0f; border-color: rgba(244, 63, 94, 0.2);">
-                
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent animate-pulse"></div>
-                
+
+                <div
+                    class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent animate-pulse">
+                </div>
+
                 <div class="flex flex-col items-center text-center">
-                    <div class="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 mb-6 border border-rose-500/20 shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 mb-6 border border-rose-500/20 shadow-[0_0_20px_rgba(244,63,94,0.1)]">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <path
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </div>
-                    
-                    <h3 class="text-xl font-black text-rose-500 uppercase tracking-[0.2em] mb-3">Finalizar Mando</h3>
+
+                    <h3 class="text-xl font-black text-rose-500 uppercase tracking-[0.2em] mb-3">Cerrar Sesión</h3>
                     <p class="font-mono-tech text-[10px] text-zinc-400 uppercase leading-relaxed mb-8">
-                        ¿Estás seguro de que deseas desconectar el enlace de mando actual?
+                        ¿Estás seguro de que deseas cerrar sesión?
                     </p>
-                    
+
                     <div class="flex gap-4 w-full">
-                        <button @click="showLogoutModal = false" class="flex-1 px-6 py-3 bg-zinc-900 text-zinc-400 font-bold text-[10px] uppercase tracking-widest rounded-xl border border-white/5 hover:bg-zinc-800 transition-all">
-                            Abortar
+                        <button @click="showLogoutModal = false"
+                            class="flex-1 px-6 py-3 bg-zinc-900 text-zinc-400 font-bold text-[10px] uppercase tracking-widest rounded-xl border border-white/5 hover:bg-zinc-800 transition-all">
+                            Cancelar
                         </button>
-                        <button wire:click="logout" class="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.4)]">
-                            Confirmar
+                        <button wire:click="logout"
+                            class="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.4)]">
+                            Cerrar Sesión
                         </button>
                     </div>
                 </div>

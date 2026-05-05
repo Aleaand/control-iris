@@ -30,6 +30,7 @@ class Reservation extends Model
         'manual_adjustment_type',
         'manual_adjustment_value',
         'discount_note',
+        'stripe_receipts',
     ];
 
     protected function casts(): array
@@ -40,6 +41,7 @@ class Reservation extends Model
             'discount_applied' => 'boolean',
             'manual_adjustment_value' => 'decimal:2',
             'is_adenda' => 'boolean',
+            'stripe_receipts' => 'array',
         ];
     }
 

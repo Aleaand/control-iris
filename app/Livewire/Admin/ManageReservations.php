@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Traits\HasResponsivePagination;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Reservation;
@@ -13,12 +14,15 @@ use App\Models\PriceLog;
 use App\Models\Task;
 use App\Models\TerrestrialFlight;
 use App\Models\Location;
+use App\Models\Passenger;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
 
 class ManageReservations extends Component
 {
-    use WithPagination;
+    use WithPagination, HasResponsivePagination;
+
+    protected $paginationTheme = 'simple-tailwind';
 
     // ── Reserva Base ──────────────────────────────────────
     public $user_id;
@@ -96,7 +100,15 @@ class ManageReservations extends Component
     public $activeTab = 'space';
     public $showSaveModal = false;
     public $showDeleteModal = false;
+    public $showReceiptsModal = false;
+    public $paid_amount = 0;
+    public $receiptsList = [];
     public $deleteId = null;
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
 
     // ── Flujo Maestro-Detalle de Edición/Eliminación de Grupo ──
     public bool $showGroupEditModal = false;
@@ -106,6 +118,7 @@ class ManageReservations extends Component
     // ── Modo Grupo ────────────────────────────────────────
     public bool $groupMode = true;
     public string $bookingGroupId = '';
+    public string $expedition_title = '';
     public bool $isAdendaMode = false;
     public ?int $adendaParentId = null;
     // Cada ítem: ['passenger_id', 'name', 'seat_type', 'seat_number',
@@ -142,12 +155,14 @@ class ManageReservations extends Component
         $rules = [
             'user_id' => 'required|exists:users,id',
             'space_flight_id' => [
-                'required',
+                'nullable',
                 'exists:flights,id',
                 function ($attribute, $value, $fail) {
+                    if (!$value) return;
                     // Solo validar capacidad aquí si NO estamos en modo grupo.
                     // En modo grupo, executeSave() tiene su propia validación iterativa.
-                    if ($this->groupMode) return;
+                    if ($this->groupMode)
+                        return;
 
                     $flight = Flight::with('starship')->find($value);
                     if (!$flight || !$flight->starship)
@@ -173,9 +188,9 @@ class ManageReservations extends Component
             'manual_adjustment_type' => 'in:none,pct,fixed',
             'manual_adjustment_value' => 'nullable|numeric|min:0',
             'discount_note' => 'nullable|string|max:255',
+            'selectedPassengers' => $this->groupMode && !$this->isEditing ? 'required|array|min:1' : 'nullable',
         ];
 
-        // Validaciones específicas para el modo individual (flujo original)
         if (!$this->groupMode) {
             $rules['passenger_id'] = 'required|exists:passengers,id';
             $rules['seat_type'] = 'nullable|string';
@@ -336,6 +351,7 @@ class ManageReservations extends Component
         // Reset Grupo
         $this->groupMode = true;
         $this->bookingGroupId = '';
+        $this->expedition_title = '';
         $this->selectedPassengers = [];
         $this->groupTotal = 0.0;
         $this->isAdendaMode = false;
@@ -372,8 +388,8 @@ class ManageReservations extends Component
             $this->clientSearchResults = User::query()
                 ->where('role', 'cliente')
                 ->where(function ($q) {
-                    $q->where('email', 'ilike', '%' . $this->clientSearch . '%')
-                        ->orWhere('name', 'ilike', '%' . $this->clientSearch . '%');
+                    $q->where('email', 'LIKE', '%' . $this->clientSearch . '%')
+                        ->orWhere('name', 'LIKE', '%' . $this->clientSearch . '%');
 
                     if (is_numeric($this->clientSearch)) {
                         $q->orWhere('id', (int) $this->clientSearch);
@@ -424,8 +440,8 @@ class ManageReservations extends Component
         if (strlen($this->flightSearch) > 1) {
             $this->flightSearchResults = Flight::with('destination')
                 ->where(function ($q) {
-                    $q->where('flight_code', 'ilike', '%' . $this->flightSearch . '%')
-                        ->orWhereHas('destination', fn($d) => $d->where('name', 'ilike', '%' . $this->flightSearch . '%'));
+                    $q->where('flight_code', 'LIKE', '%' . $this->flightSearch . '%')
+                        ->orWhereHas('destination', fn($d) => $d->where('name', 'LIKE', '%' . $this->flightSearch . '%'));
                 })
                 ->where('departure_date', '>', now())
                 ->take(5)
@@ -447,7 +463,7 @@ class ManageReservations extends Component
         $this->selectedFlightLabel = $label;
         $this->flightSearch = '';
         $this->flightSearchResults = [];
-        
+
         if ($this->hasReturnFlight) {
             $this->suggestReturnFlight();
         }
@@ -460,10 +476,12 @@ class ManageReservations extends Component
      */
     public function suggestReturnFlight(): void
     {
-        if (!$this->space_flight_id || $this->return_flight_id) return;
+        if (!$this->space_flight_id || $this->return_flight_id)
+            return;
 
         $outbound = Flight::find($this->space_flight_id);
-        if (!$outbound) return;
+        if (!$outbound)
+            return;
 
         // "el proximo vuelo a su llegada"
         // Si hay fecha de llegada registrada, la usamos. Si no, usamos la de salida.
@@ -487,7 +505,7 @@ class ManageReservations extends Component
     {
         if (strlen($this->returnFlightSearch) > 1) {
             $query = Flight::with('destination');
-            
+
             // Si hay un vuelo de ida seleccionado, el origen de la vuelta debe ser el destino de la ida
             if ($this->space_flight_id) {
                 $outboundFlight = Flight::find($this->space_flight_id);
@@ -495,11 +513,11 @@ class ManageReservations extends Component
                     $query->where('origin_id', $outboundFlight->destination_id);
                 }
             }
-            
+
             $this->returnFlightSearchResults = $query
                 ->where(function ($q) {
-                    $q->where('flight_code', 'ilike', '%' . $this->returnFlightSearch . '%')
-                        ->orWhereHas('destination', fn($d) => $d->where('name', 'ilike', '%' . $this->returnFlightSearch . '%'));
+                    $q->where('flight_code', 'LIKE', '%' . $this->returnFlightSearch . '%')
+                        ->orWhereHas('destination', fn($d) => $d->where('name', 'LIKE', '%' . $this->returnFlightSearch . '%'));
                 })
                 ->where('departure_date', '>', now())
                 ->take(5)
@@ -546,8 +564,8 @@ class ManageReservations extends Component
         if (strlen($this->hotelSearch) > 1) {
             $this->hotelSearchResults = Hotel::with('location')
                 ->where(function ($q) {
-                    $q->where('name', 'ilike', '%' . $this->hotelSearch . '%')
-                        ->orWhereHas('location', fn($l) => $l->where('name', 'ilike', '%' . $this->hotelSearch . '%'));
+                    $q->where('name', 'LIKE', '%' . $this->hotelSearch . '%')
+                        ->orWhereHas('location', fn($l) => $l->where('name', 'LIKE', '%' . $this->hotelSearch . '%'));
                 })
                 ->take(5)
                 ->get()
@@ -585,8 +603,8 @@ class ManageReservations extends Component
         if (strlen($this->terrestrialSearch) > 1) {
             $this->terrestrialSearchResults = TerrestrialFlight::with(['originLocation', 'destinationLocation'])
                 ->where(function ($q) {
-                    $q->whereHas('originLocation', fn($l) => $l->where('name', 'ilike', '%' . $this->terrestrialSearch . '%'))
-                        ->orWhereHas('destinationLocation', fn($l) => $l->where('name', 'ilike', '%' . $this->terrestrialSearch . '%'));
+                    $q->whereHas('originLocation', fn($l) => $l->where('name', 'LIKE', '%' . $this->terrestrialSearch . '%'))
+                        ->orWhereHas('destinationLocation', fn($l) => $l->where('name', 'LIKE', '%' . $this->terrestrialSearch . '%'));
                 })
                 ->where('departure_datetime', '>', now())
                 ->take(5)
@@ -627,10 +645,8 @@ class ManageReservations extends Component
         $this->clientSearch = '';
         $this->clientSearchResults = [];
 
-        // Cargar pasajeros del cliente
         $this->clientPassengers = \App\Models\Passenger::where('user_id', $id)->get();
 
-        // ⚠️ Solo auto-seleccionar en MODO INDIVIDUAL (no en grupo, el checklist se encarga)
         if (!$this->groupMode) {
             if ($this->clientPassengers->count() === 1) {
                 $p = $this->clientPassengers->first();
@@ -650,8 +666,6 @@ class ManageReservations extends Component
         $this->selectedPassengerName = $name;
         $this->passengerSearchResults = [];
 
-        // ONBOARDING PROACTIVO: Para pasajeros nuevos sin reservas previas, 
-        // marcamos sugerencia de Iris Training por seguridad.
         $hasPrevious = Reservation::where('passenger_id', $id)->exists();
         if (!$hasPrevious) {
             $this->training_included = true;
@@ -660,9 +674,6 @@ class ManageReservations extends Component
         $this->calculateTotalPrice();
     }
 
-    // ══════════════════════════════════════════════════════
-    // ── MÉTODOS DE MODO GRUPO ─────────────────────────────
-    // ══════════════════════════════════════════════════════
 
     public function toggleGroupMode(): void
     {
@@ -670,21 +681,19 @@ class ManageReservations extends Component
         $this->selectedPassengers = [];
         $this->groupTotal = 0.0;
         $this->bookingGroupId = '';
-        $this->activeTab = 'space'; // Reset tab to space when toggling
+        $this->activeTab = 'space';
     }
-
-    /**
-     * Añade un pasajero al grupo. Evita duplicados.
-     */
     public function addPassengerToGroup(int $passengerId): void
     {
         // Evitar duplicados en el array
         foreach ($this->selectedPassengers as $p) {
-            if ($p['passenger_id'] === $passengerId) return;
+            if ($p['passenger_id'] === $passengerId)
+                return;
         }
 
         $passenger = \App\Models\Passenger::find($passengerId);
-        if (!$passenger) return;
+        if (!$passenger)
+            return;
 
         if (!$passenger->isAdult()) {
             $this->dispatch('swal:alert', [
@@ -696,55 +705,44 @@ class ManageReservations extends Component
         }
 
         $this->selectedPassengers[] = [
-            'passenger_id'                  => $passengerId,
-            'name'                          => $passenger->full_name,
-            // — Validez de documentos (para deshabilitar servicios en UI)
-            'has_valid_passport'            => $passenger->hasValidPassport(),
-            'has_valid_training'            => $passenger->hasValidTraining(),
-            'has_training_discount'         => $passenger->hasTrainingDiscount(),
-            // — Servicios
-            'seat_type'                     => 'nova',
-            'seat_number'                   => '',
-            'training_included'             => false,
-            'passport_management_included'  => false,
-            'refund_insurance_included'     => false,
-            'vip_transfer_included'         => false,
-            // — Logística individual
-            'hotel_id'                      => null,
-            'hotel_label'                   => '',
-            'hotel_nights'                  => 0,
-            'shared_hotel_key'              => null,
-            'is_hotel_payer'                => true,
-            'terrestrial_flight_id'         => null,
-            'terrestrial_flight_label'      => '',
-            // — Logística de Regreso
-            'return_hotel_id'               => null,
-            'return_hotel_nights'           => 0,
-            'return_terrestrial_flight_id'  => null,
-            'return_vip_transfer_included'  => false,
-            'return_total_price'            => 0.0,
-            'returnPriceBreakdown'          => [],
-            // — Precio
-            'total_price'                   => 0.0,
-            'priceBreakdown'                => [],
+            'passenger_id' => $passengerId,
+            'name' => $passenger->full_name,
+            'has_valid_passport' => $passenger->hasValidPassport(),
+            'has_valid_training' => $passenger->hasValidTraining(),
+            'has_training_discount' => $passenger->hasTrainingDiscount(),
+            'seat_type' => 'nova',
+            'seat_number' => '',
+            'training_included' => false,
+            'passport_management_included' => false,
+            'refund_insurance_included' => false,
+            'vip_transfer_included' => false,
+            'hotel_id' => null,
+            'hotel_label' => '',
+            'hotel_nights' => 0,
+            'shared_hotel_key' => null,
+            'is_hotel_payer' => true,
+            'terrestrial_flight_id' => null,
+            'terrestrial_flight_label' => '',
+            'return_hotel_id' => null,
+            'return_hotel_nights' => 0,
+            'return_terrestrial_flight_id' => null,
+            'return_vip_transfer_included' => false,
+            'return_total_price' => 0.0,
+            'returnPriceBreakdown' => [],
+            'total_price' => 0.0,
+            'priceBreakdown' => [],
         ];
 
         $this->recalculatePassengerPrice(count($this->selectedPassengers) - 1);
         $this->calculateGroupTotal();
     }
 
-    /**
-     * Elimina un pasajero del array del grupo.
-     */
     public function removePassengerFromGroup(int $index): void
     {
         array_splice($this->selectedPassengers, $index, 1);
         $this->calculateGroupTotal();
     }
 
-    /**
-     * Actualiza un campo concreto de un pasajero del grupo y recalcula su precio.
-     */
     public function updatePassengerReturnService(int $index, string $field, $value): void
     {
         $this->selectedPassengers[$index][$field] = $value;
@@ -775,9 +773,9 @@ class ManageReservations extends Component
 
     public function updatePassengerService(int $index, string $field, $value): void
     {
-        if (!isset($this->selectedPassengers[$index])) return;
-        // Convertir checkboxes enviados como string desde wire:change
-        if (in_array($field, ['training_included','passport_management_included','refund_insurance_included','vip_transfer_included'])) {
+        if (!isset($this->selectedPassengers[$index]))
+            return;
+        if (in_array($field, ['training_included', 'passport_management_included', 'refund_insurance_included', 'vip_transfer_included'])) {
             $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
         }
         $this->selectedPassengers[$index][$field] = $value;
@@ -785,96 +783,102 @@ class ManageReservations extends Component
         $this->calculateGroupTotal();
     }
 
-    /**
-     * Selecciona el hotel de un pasajero del grupo.
-     */
     public function selectPassengerHotel(int $index, $hotelId): void
     {
-        if (!isset($this->selectedPassengers[$index])) return;
+        if (!isset($this->selectedPassengers[$index]))
+            return;
         $hotelId = $hotelId ? (int) $hotelId : null;
         $label = '';
         if ($hotelId) {
             $hotel = Hotel::find($hotelId);
             $label = $hotel ? $hotel->name : '';
         }
-        $this->selectedPassengers[$index]['hotel_id']    = $hotelId;
+        $this->selectedPassengers[$index]['hotel_id'] = $hotelId;
         $this->selectedPassengers[$index]['hotel_label'] = $label;
         $this->recalculatePassengerPrice($index);
         $this->calculateGroupTotal();
     }
 
-    /**
-     * Actualiza las noches de hotel de un pasajero del grupo.
-     */
     public function updatePassengerHotelNights(int $index, $nights): void
     {
-        if (!isset($this->selectedPassengers[$index])) return;
+        if (!isset($this->selectedPassengers[$index]))
+            return;
         $this->selectedPassengers[$index]['hotel_nights'] = max(0, (int) $nights);
         $this->recalculatePassengerPrice($index);
         $this->calculateGroupTotal();
     }
 
-    /**
-     * Selecciona el vuelo terrestre de un pasajero del grupo.
-     */
     public function selectPassengerTerrestrialFlight(int $index, $flightId): void
     {
-        if (!isset($this->selectedPassengers[$index])) return;
+        if (!isset($this->selectedPassengers[$index]))
+            return;
         $flightId = $flightId ? (int) $flightId : null;
         $label = '';
         if ($flightId) {
-            $tf = TerrestrialFlight::with(['originLocation','destinationLocation'])->find($flightId);
+            $tf = TerrestrialFlight::with(['originLocation', 'destinationLocation'])->find($flightId);
             if ($tf) {
                 $label = ($tf->originLocation?->name ?? '?') . ' → ' . ($tf->destinationLocation?->name ?? '?');
             }
         }
-        $this->selectedPassengers[$index]['terrestrial_flight_id']    = $flightId;
+        $this->selectedPassengers[$index]['terrestrial_flight_id'] = $flightId;
         $this->selectedPassengers[$index]['terrestrial_flight_label'] = $label;
         $this->calculateGroupTotal();
     }
 
-    /**
-     * Vincula dos pasajeros con el mismo shared_hotel_key.
-     * El primero (indexA) paga la habitación; el segundo (indexB) paga 0.
-     */
     public function linkPassengersHotel(int $indexA, int $indexB): void
     {
         $token = 'HOTEL-' . strtoupper(substr(md5($indexA . $indexB . now()), 0, 8));
 
         $this->selectedPassengers[$indexA]['shared_hotel_key'] = $token;
-        $this->selectedPassengers[$indexA]['is_hotel_payer']   = true;
+        $this->selectedPassengers[$indexA]['is_hotel_payer'] = true;
 
         $this->selectedPassengers[$indexB]['shared_hotel_key'] = $token;
-        $this->selectedPassengers[$indexB]['is_hotel_payer']   = false;
+        $this->selectedPassengers[$indexB]['is_hotel_payer'] = false;
 
-        // Recalcular: el B no pagará hotel
         $this->recalculatePassengerPrice($indexA);
         $this->recalculatePassengerPrice($indexB);
         $this->calculateGroupTotal();
     }
 
-    /**
-     * Carga una reserva existente en modo Adenda.
-     * El formulario mostrará solo los servicios que aún no tiene el pasajero.
-     */
     public function prepareAdendaMode(int $reservationId): void
     {
-        $this->resetInputFields();
         $res = Reservation::with(['logistics', 'spaceFlight', 'passenger', 'user'])->find($reservationId);
-        if (!$res) return;
+        if (!$res)
+            return;
 
-        $this->isAdendaMode    = true;
-        $this->adendaParentId  = $res->id;
-        $this->isEditing       = false;
+        // Si la reserva NO está pagada, el "upgrade" es simplemente una edición
+        // para que se sume al total de la reserva original y lo pague todo junto.
+        if ($res->payment_status !== 'paid') {
+            $this->edit($reservationId);
+            return;
+        }
+
+        $this->resetInputFields();
+        $this->groupMode = false;
+
+        $this->isAdendaMode = true;
+        $this->adendaParentId = $res->id;
+        $this->isEditing = false;
+
+        $this->originalSnapshot = $res->price_snapshot;
+        $this->originalSpaceFlightId = $res->space_flight_id;
+        $this->originalSeatType = $res->seat_type;
+        $this->originalHotelId = $res->logistics?->hotel_id;
+        $this->originalHotelNights = $res->logistics?->hotel_nights;
+        $this->originalTerrestrialFlightId = $res->logistics?->terrestrial_flight_id;
+        $this->originalTraining = $res->logistics?->training_included;
+        $this->originalVip = $res->logistics?->vip_transfer_included;
+        $this->originalPassport = $res->logistics?->passport_management_included;
+        $this->originalInsurance = $res->logistics?->refund_insurance_included;
 
         // Heredar datos del pasajero original
-        $this->user_id             = $res->user_id;
-        $this->passenger_id        = $res->passenger_id;
-        $this->space_flight_id     = $res->space_flight_id;
-        $this->seat_type           = $res->seat_type;
-        $this->selectedClientName  = $res->user ? $res->user->name . ' (' . $res->user->email . ')' : '';
+        $this->user_id = $res->user_id;
+        $this->passenger_id = $res->passenger_id;
+        $this->space_flight_id = $res->space_flight_id;
+        $this->seat_type = $res->seat_type;
+        $this->selectedClientName = $res->user ? $res->user->name . ' (' . $res->user->email . ')' : '';
         $this->selectedPassengerName = $res->passenger?->full_name ?? '';
-        $this->bookingGroupId      = $res->booking_group_id;
+        $this->bookingGroupId = $res->booking_group_id;
 
         if ($res->spaceFlight) {
             $sf = $res->spaceFlight;
@@ -883,10 +887,10 @@ class ManageReservations extends Component
         }
 
         // Marcar servicios YA contratados para que el Blade los deshabilite
-        $this->training_included            = $res->logistics?->training_included ?? false;
+        $this->training_included = $res->logistics?->training_included ?? false;
         $this->passport_management_included = $res->logistics?->passport_management_included ?? false;
-        $this->refund_insurance_included    = $res->logistics?->refund_insurance_included ?? false;
-        $this->vip_transfer_included        = $res->logistics?->vip_transfer_included ?? false;
+        $this->refund_insurance_included = $res->logistics?->refund_insurance_included ?? false;
+        $this->vip_transfer_included = $res->logistics?->vip_transfer_included ?? false;
 
         $this->calculateTotalPrice();
     }
@@ -898,15 +902,16 @@ class ManageReservations extends Component
     protected function recalculatePassengerPrice(int $index): void
     {
         $p = $this->selectedPassengers[$index] ?? null;
-        if (!$p || !$this->space_flight_id) return;
+        if (!$p || !$this->space_flight_id)
+            return;
 
         $flight = Flight::find($this->space_flight_id);
-        if (!$flight) return;
+        if (!$flight)
+            return;
 
-        $mult       = strtolower($p['seat_type']) === 'supernova' ? 2.5 : 1;
+        $mult = strtolower($p['seat_type']) === 'supernova' ? 2.5 : 1;
         $spacePrice = round($flight->base_price * $mult, 2);
 
-        // Hotel individual: solo paga si es pagador (o no comparte habitación)
         $hotelPrice = 0;
         if (($p['hotel_id'] ?? null) && ($p['hotel_nights'] ?? 0) > 0) {
             if (!($p['shared_hotel_key'] ?? null) || ($p['is_hotel_payer'] ?? true)) {
@@ -917,27 +922,26 @@ class ManageReservations extends Component
             }
         }
 
-        // Vuelo terrestre individual
         $terrestrialPrice = 0;
         if ($p['terrestrial_flight_id'] ?? null) {
             $tf = TerrestrialFlight::find($p['terrestrial_flight_id']);
-            if ($tf) $terrestrialPrice = round($tf->price ?? 0, 2);
+            if ($tf)
+                $terrestrialPrice = round($tf->price ?? 0, 2);
         }
 
-        $trainingFee = $p['training_included']            ? PriceLog::getCurrentPrice('training') : 0;
+        $trainingFee = $p['training_included'] ? PriceLog::getCurrentPrice('training') : 0;
         $passportFee = $p['passport_management_included'] ? PriceLog::getCurrentPrice('passport_management') : 0;
-        $vipFee      = $p['vip_transfer_included']        ? PriceLog::getCurrentPrice('vip_transfer') : 0;
+        $vipFee = $p['vip_transfer_included'] ? PriceLog::getCurrentPrice('vip_transfer') : 0;
 
         $base = $spacePrice + $hotelPrice + $terrestrialPrice + $trainingFee + $passportFee + $vipFee;
 
         $insuranceFee = 0;
         if ($p['refund_insurance_included']) {
-            $pct          = PriceLog::getCurrentPrice('refund_insurance');
+            $pct = PriceLog::getCurrentPrice('refund_insurance');
             $insuranceFee = round($base * ($pct / 100), 2);
         }
 
-        // Descuento por certificado de training reciente
-        $passenger   = \App\Models\Passenger::find($p['passenger_id']);
+        $passenger = \App\Models\Passenger::find($p['passenger_id']);
         $discountAmt = 0;
         if ($passenger && $passenger->hasTrainingDiscount()) {
             $discountAmt = round(($base + $insuranceFee) * 0.10, 2);
@@ -945,20 +949,19 @@ class ManageReservations extends Component
 
         $total = max(0, round($base + $insuranceFee - $discountAmt, 2));
 
-        $this->selectedPassengers[$index]['total_price']    = $total;
+        $this->selectedPassengers[$index]['total_price'] = $total;
         $this->selectedPassengers[$index]['priceBreakdown'] = [
-            'space'        => $spacePrice,
-            'hotel'        => $hotelPrice,
-            'terrestrial'  => $terrestrialPrice,
-            'training'     => $trainingFee,
-            'passport'     => $passportFee,
-            'vip'          => $vipFee,
-            'insurance'    => $insuranceFee,
-            'discount'     => $discountAmt,
-            'total'        => $total,
+            'space' => $spacePrice,
+            'hotel' => $hotelPrice,
+            'terrestrial' => $terrestrialPrice,
+            'training' => $trainingFee,
+            'passport' => $passportFee,
+            'vip' => $vipFee,
+            'insurance' => $insuranceFee,
+            'discount' => $discountAmt,
+            'total' => $total,
         ];
 
-        // Calcular Vuelta si aplica
         if ($this->hasReturnFlight) {
             $this->calculateReturnPriceForPassenger($index);
         } else {
@@ -969,15 +972,11 @@ class ManageReservations extends Component
         $this->applyTemporalCoherence();
     }
 
-    /**
-     * Calcula el precio del trayecto de vuelta para un pasajero específico.
-     * Aplica la lógica de exclusión de Training y Pasaporte.
-     */
     public function calculateReturnPriceForPassenger(int $index): void
     {
         $p = &$this->selectedPassengers[$index];
         $passenger = \App\Models\Passenger::find($p['passenger_id']);
-        
+
         $spacePrice = 0;
         if ($this->return_flight_id) {
             $flight = Flight::find($this->return_flight_id);
@@ -987,7 +986,6 @@ class ManageReservations extends Component
             }
         }
 
-        // Logística de vuelta (usamos campos específicos o globales)
         $hotelPrice = 0;
         if (($p['return_hotel_id'] ?? null) && ($p['return_hotel_nights'] ?? 0) > 0) {
             $hotel = Hotel::find($p['return_hotel_id']);
@@ -1006,20 +1004,17 @@ class ManageReservations extends Component
 
         $vipFee = ($p['return_vip_transfer_included'] ?? false) ? PriceLog::getCurrentPrice('vip_transfer') : 0;
 
-        // Training y Pasaporte EXCLUIDOS en vuelta
         $trainingFee = 0;
         $passportFee = 0;
 
         $base = $spacePrice + $hotelPrice + $terrestrialPrice + $trainingFee + $passportFee + $vipFee;
 
-        // El seguro suele ser global, pero aquí lo calculamos por trayecto si está activo en la ida
         $insuranceFee = 0;
         if ($p['refund_insurance_included']) {
-            $pct          = PriceLog::getCurrentPrice('refund_insurance');
+            $pct = PriceLog::getCurrentPrice('refund_insurance');
             $insuranceFee = round($base * ($pct / 100), 2);
         }
 
-        // Descuento por certificado (se aplica si es apto)
         $discountAmt = 0;
         if ($passenger && $passenger->hasTrainingDiscount()) {
             $discountAmt = round(($base + $insuranceFee) * 0.10, 2);
@@ -1029,13 +1024,13 @@ class ManageReservations extends Component
 
         $p['return_total_price'] = $totalReturn;
         $p['returnPriceBreakdown'] = [
-            'space'        => $spacePrice,
-            'hotel'        => $hotelPrice,
-            'terrestrial'  => $terrestrialPrice,
-            'vip'          => $vipFee,
-            'insurance'    => $insuranceFee,
-            'discount'     => $discountAmt,
-            'total'        => $totalReturn,
+            'space' => $spacePrice,
+            'hotel' => $hotelPrice,
+            'terrestrial' => $terrestrialPrice,
+            'vip' => $vipFee,
+            'insurance' => $insuranceFee,
+            'discount' => $discountAmt,
+            'total' => $totalReturn,
         ];
     }
 
@@ -1044,7 +1039,7 @@ class ManageReservations extends Component
      */
     public function calculateGroupTotal(): void
     {
-        $this->groupTotal = collect($this->selectedPassengers)->sum(function($p) {
+        $this->groupTotal = collect($this->selectedPassengers)->sum(function ($p) {
             return ($p['total_price'] ?? 0) + ($p['return_total_price'] ?? 0);
         });
     }
@@ -1062,7 +1057,8 @@ class ManageReservations extends Component
 
         $passenger = $this->passenger_id ? \App\Models\Passenger::find($this->passenger_id) : null;
         $flight = Flight::find($this->return_flight_id);
-        if (!$flight) return;
+        if (!$flight)
+            return;
 
         $mult = $this->seat_type === 'supernova' ? 2.5 : 1;
         $spacePrice = round($flight->base_price * $mult, 2);
@@ -1070,17 +1066,19 @@ class ManageReservations extends Component
         $hotelPrice = 0;
         if ($this->return_hotel_id && $this->return_hotel_nights > 0) {
             $hotel = Hotel::find($this->return_hotel_id);
-            if ($hotel) $hotelPrice = round($hotel->price_per_night * $this->return_hotel_nights, 2);
+            if ($hotel)
+                $hotelPrice = round($hotel->price_per_night * $this->return_hotel_nights, 2);
         }
 
         $terrestrialPrice = 0;
         if ($this->return_terrestrial_flight_id) {
             $tf = TerrestrialFlight::find($this->return_terrestrial_flight_id);
-            if ($tf) $terrestrialPrice = round($tf->price, 2);
+            if ($tf)
+                $terrestrialPrice = round($tf->price, 2);
         }
 
         $vipFee = $this->return_vip_transfer_included ? PriceLog::getCurrentPrice('vip_transfer') : 0;
-        
+
         $base = $spacePrice + $hotelPrice + $terrestrialPrice + $vipFee;
 
         $insuranceFee = 0;
@@ -1095,14 +1093,14 @@ class ManageReservations extends Component
 
         $this->return_total_price = $totalReturn;
         $this->returnPriceBreakdown = [
-            'space'        => $spacePrice,
-            'hotel'        => $hotelPrice,
-            'terrestrial'  => $terrestrialPrice,
-            'vip'          => $vipFee,
-            'insurance'    => $insuranceFee,
-            'discount'     => $discountAmt,
-            'total'        => $totalReturn,
-            'snapshot_at'  => now()->toIso8601String(),
+            'space' => $spacePrice,
+            'hotel' => $hotelPrice,
+            'terrestrial' => $terrestrialPrice,
+            'vip' => $vipFee,
+            'insurance' => $insuranceFee,
+            'discount' => $discountAmt,
+            'total' => $totalReturn,
+            'snapshot_at' => now()->toIso8601String(),
         ];
     }
 
@@ -1128,13 +1126,11 @@ class ManageReservations extends Component
     {
         $price = 0;
         $snap = $this->originalSnapshot;
-
-        // 1. Vuelo Espacial
+        $isProtecting = ($this->isEditing || $this->isAdendaMode);
         $spacePrice = 0;
         $mult = 1;
         if ($this->space_flight_id) {
-            // Check protection
-            if ($snap && $this->isEditing && $this->space_flight_id == $this->originalSpaceFlightId && $this->seat_type == $this->originalSeatType && isset($snap['space'])) {
+            if ($snap && $isProtecting && $this->space_flight_id == $this->originalSpaceFlightId && $this->seat_type == $this->originalSeatType && isset($snap['space'])) {
                 $spacePrice = (float) $snap['space'];
                 $mult = $snap['mult'] ?? 1;
             } else {
@@ -1148,10 +1144,9 @@ class ManageReservations extends Component
             $price += $spacePrice;
         }
 
-        // 2. Hotel
         $hotelPrice = 0;
         if ($this->hotel_id && $this->hotel_nights > 0) {
-            if ($snap && $this->isEditing && $this->hotel_id == $this->originalHotelId && $this->hotel_nights == $this->originalHotelNights && isset($snap['hotel'])) {
+            if ($snap && $isProtecting && $this->hotel_id == $this->originalHotelId && $this->hotel_nights == $this->originalHotelNights && isset($snap['hotel'])) {
                 $hotelPrice = (float) $snap['hotel'];
             } else {
                 $hotel = Hotel::find($this->hotel_id);
@@ -1162,10 +1157,9 @@ class ManageReservations extends Component
             $price += $hotelPrice;
         }
 
-        // 3. Vuelo Terrestre
         $terrestrialPrice = 0;
         if ($this->terrestrial_flight_id) {
-            if ($snap && $this->isEditing && $this->terrestrial_flight_id == $this->originalTerrestrialFlightId && isset($snap['terrestrial'])) {
+            if ($snap && $isProtecting && $this->terrestrial_flight_id == $this->originalTerrestrialFlightId && isset($snap['terrestrial'])) {
                 $terrestrialPrice = (float) $snap['terrestrial'];
             } else {
                 $tFlight = TerrestrialFlight::find($this->terrestrial_flight_id);
@@ -1176,10 +1170,9 @@ class ManageReservations extends Component
             $price += $terrestrialPrice;
         }
 
-        // 4. Extras
         $trainingFee = 0;
         if ($this->training_included) {
-            if ($snap && $this->isEditing && $this->training_included == $this->originalTraining && isset($snap['training'])) {
+            if ($snap && $isProtecting && $this->training_included == $this->originalTraining && isset($snap['training'])) {
                 $trainingFee = (float) $snap['training'];
             } else {
                 $trainingFee = PriceLog::getCurrentPrice('training');
@@ -1188,7 +1181,7 @@ class ManageReservations extends Component
 
         $passportFee = 0;
         if ($this->passport_management_included) {
-            if ($snap && $this->isEditing && $this->passport_management_included == $this->originalPassport && isset($snap['passport'])) {
+            if ($snap && $isProtecting && $this->passport_management_included == $this->originalPassport && isset($snap['passport'])) {
                 $passportFee = (float) $snap['passport'];
             } else {
                 $passportFee = PriceLog::getCurrentPrice('passport_management');
@@ -1197,7 +1190,7 @@ class ManageReservations extends Component
 
         $vipFee = 0;
         if ($this->vip_transfer_included) {
-            if ($snap && $this->isEditing && $this->vip_transfer_included == $this->originalVip && isset($snap['vip'])) {
+            if ($snap && $isProtecting && $this->vip_transfer_included == $this->originalVip && isset($snap['vip'])) {
                 $vipFee = (float) $snap['vip'];
             } else {
                 $vipFee = PriceLog::getCurrentPrice('vip_transfer');
@@ -1206,10 +1199,9 @@ class ManageReservations extends Component
 
         $priceBeforeInsurance = $price + $trainingFee + $passportFee + $vipFee;
 
-        // 5. Refund Insurance (Percentage of the total so far)
         $insuranceFee = 0;
         if ($this->refund_insurance_included) {
-            if ($snap && $this->isEditing && $this->refund_insurance_included == $this->originalInsurance && isset($snap['insurance'])) {
+            if ($snap && $isProtecting && $this->refund_insurance_included == $this->originalInsurance && isset($snap['insurance'])) {
                 $insuranceFee = (float) $snap['insurance'];
             } else {
                 $insurancePct = PriceLog::getCurrentPrice('refund_insurance');
@@ -1218,8 +1210,6 @@ class ManageReservations extends Component
         }
 
         $price = $priceBeforeInsurance + $insuranceFee;
-
-        // 5. Descuento 10% si certificado training < 3 años (en Passenger)
         $this->discount_applied = false;
         if ($this->passenger_id) {
             $passenger = \App\Models\Passenger::find($this->passenger_id);
@@ -1235,7 +1225,6 @@ class ManageReservations extends Component
         $discountAmt = $this->discount_applied ? round($subtotal * 0.10, 2) : 0;
         $afterCertDiscount = round($subtotal - $discountAmt, 2);
 
-        // 6. Ajuste Manual / Cortesía
         $manualAdj = 0;
         $adjType = $this->manual_adjustment_type;
         $adjValue = (float) $this->manual_adjustment_value;
@@ -1243,11 +1232,21 @@ class ManageReservations extends Component
         if ($adjType === 'pct' && $adjValue > 0) {
             $manualAdj = round($afterCertDiscount * ($adjValue / 100), 2);
         } elseif ($adjType === 'fixed' && $adjValue > 0) {
-            // Fixed = precio final forzado — ajuste es la diferencia
-            $manualAdj = max(0, round($afterCertDiscount - $adjValue, 2));
+            $manualAdj = min($afterCertDiscount, $adjValue);
         }
 
         $total = round($afterCertDiscount - $manualAdj, 2);
+        
+        // Si es una Adenda/Upgrade, solo cobramos la DIFERENCIA
+        $this->paid_amount = 0;
+        if ($this->isAdendaMode && $this->adendaParentId) {
+            $parent = \App\Models\Reservation::find($this->adendaParentId);
+            if ($parent) {
+                $this->paid_amount = (float) $parent->total_price;
+                $total = max(0, $total - $this->paid_amount);
+            }
+        }
+
         if ($total < 0)
             $total = 0;
 
@@ -1255,10 +1254,8 @@ class ManageReservations extends Component
             $this->total_price = $total;
         }
 
-        // --- CÁLCULO DE VUELTA INDIVIDUAL ---
         $this->calculateIndividualReturnPrice();
 
-        // Populate breakdown for the blade panel
         $this->priceBreakdown = [
             'space' => $spacePrice,
             'mult' => $mult,
@@ -1276,6 +1273,7 @@ class ManageReservations extends Component
             'adj_type' => $adjType,
             'adj_value' => $adjValue,
             'adj_amount' => $manualAdj,
+            'paid_amount' => $this->paid_amount,
             'total' => $total,
         ];
         $this->calculateReadiness();
@@ -1289,13 +1287,14 @@ class ManageReservations extends Component
         }
 
         $p = \App\Models\Passenger::find($this->passenger_id);
-        if (!$p) return;
+        if (!$p)
+            return;
 
         $hasPassport = $p->hasValidPassport() || $this->passport_management_included;
         $hasTraining = $p->hasValidTraining() || $this->training_included;
         $isPhysicalFit = $p->physical_fitness === 'Excelente';
         $isAdult = $p->isAdult();
-        
+
         $this->readinessCheck = [
             'passenger_name' => $p->full_name,
             'has_passport' => $hasPassport,
@@ -1322,13 +1321,20 @@ class ManageReservations extends Component
             'logistics.terrestrialFlight.originLocation',
             'logistics.terrestrialFlight.destinationLocation',
         ]);
-        
+
         if ($this->search) {
-             // ... búsqueda normal ... (sin cambios aquí)
+            $query->where(function ($q) {
+                $q->where('id_locator', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('user', fn($u) => $u->where('name', 'like', '%' . $this->search . '%'))
+                    ->orWhereHas('passenger', fn($p) => $p->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('primarylastname', 'like', '%' . $this->search . '%')
+                        ->orWhere('secondarylastname', 'like', '%' . $this->search . '%'))
+                    ->orWhereHas('spaceFlight', fn($f) => $f->where('flight_code', 'like', '%' . $this->search . '%'));
+            });
         } else {
             // Agrupamos por expedición para el Hangar de Grupo
             $query->where(function ($q) {
-                $q->whereIn('id', function($sub) {
+                $q->whereIn('id', function ($sub) {
                     $sub->selectRaw('MIN(id)')
                         ->from('reservations')
                         ->where('is_adenda', false)
@@ -1338,21 +1344,18 @@ class ManageReservations extends Component
                 })->orWhereNull('booking_group_id');
             });
         }
-
-        // Mostramos una tarjeta por expedición. 
         $reservations = $query->orderBy('created_at', $this->sortDir)
-            ->paginate(10);
+            ->paginate($this->getPerPage());
 
-        // Data for dropdowns
         $spaceFlights = Flight::with('destination')->where('departure_date', '>', now())->orderBy('departure_date')->get();
         $hotels = Hotel::with('location')->orderBy('name')->get();
         $terrestrialFlights = TerrestrialFlight::with(['originLocation', 'destinationLocation'])->where('departure_datetime', '>', now())->orderBy('departure_datetime')->get();
 
         return view('livewire.admin.manage-reservations', [
-            'reservations'        => $reservations,
-            'spaceFlights'        => $spaceFlights,
-            'hotels'              => $hotels,
-            'terrestrialFlights'  => $terrestrialFlights,
+            'reservations' => $reservations,
+            'spaceFlights' => $spaceFlights,
+            'hotels' => $hotels,
+            'terrestrialFlights' => $terrestrialFlights,
         ])->layout('layouts.app');
     }
 
@@ -1374,6 +1377,7 @@ class ManageReservations extends Component
     public function edit($id)
     {
         $this->resetInputFields();
+        $this->groupMode = false;
         $res = Reservation::with('logistics')->find($id);
 
         if ($res) {
@@ -1390,7 +1394,6 @@ class ManageReservations extends Component
             $this->seat_type = $res->seat_type;
             $this->seat_number = $res->seat_number;
 
-            // Load original values for price protection
             $this->originalSnapshot = $res->price_snapshot;
             $this->originalSpaceFlightId = $res->space_flight_id;
             $this->originalSeatType = $res->seat_type;
@@ -1403,8 +1406,6 @@ class ManageReservations extends Component
                 $this->vip_transfer_included = $res->logistics->vip_transfer_included;
                 $this->refund_insurance_included = $res->logistics->refund_insurance_included;
                 $this->passport_management_included = $res->logistics->passport_management_included;
-
-                // Originals for price protection
                 $this->originalTerrestrialFlightId = $res->logistics->terrestrial_flight_id;
                 $this->originalHotelId = $res->logistics->hotel_id;
                 $this->originalHotelNights = $res->logistics->hotel_nights;
@@ -1414,7 +1415,6 @@ class ManageReservations extends Component
                 $this->originalInsurance = $res->logistics->refund_insurance_included;
             }
 
-            // Restore live-search labels when loading a reservation for editing
             if ($res->spaceFlight) {
                 $sf = $res->spaceFlight;
                 $this->selectedFlightLabel = '#' . $sf->flight_code . ' → ' . ($sf->destination?->name ?? '?')
@@ -1431,15 +1431,11 @@ class ManageReservations extends Component
                 $this->selectedTerrestrialLabel = ($tf->originLocation?->name ?? '?') . ' → ' . ($tf->destinationLocation?->name ?? '?');
             }
 
-            // Restore manual adjustment if previously set
             $this->manual_adjustment_type = $res->manual_adjustment_type ?? 'none';
             $this->manual_adjustment_value = $res->manual_adjustment_value ?? 0;
             $this->discount_note = $res->discount_note ?? '';
 
-            // Recalculate to populate priceBreakdown
             $this->calculateTotalPrice();
-
-            // If the stored price differs from computed (manual override was used), restore it
             if ($res->total_price && $this->total_price != $res->total_price) {
                 $this->total_price = $res->total_price;
             }
@@ -1464,54 +1460,87 @@ class ManageReservations extends Component
                 return;
             }
 
-            $adenda = Reservation::create([
-                'user_id'                 => $this->user_id,
-                'passenger_id'            => $this->passenger_id,
-                'space_flight_id'         => $this->space_flight_id,
-                'id_locator'              => $parent->id_locator,
-                'booking_group_id'        => $parent->booking_group_id,
-                'parent_reservation_id'   => $parent->id,
-                'is_adenda'               => true,
-                'seat_type'               => $this->seat_type,
-                'total_price'             => $this->total_price,
-                'discount_applied'        => $this->discount_applied,
-                'status'                  => 'Pendiente',
-                'price_snapshot'          => $this->buildPriceSnapshot(),
-            ]);
+            $adendaData = [
+                'user_id' => $this->user_id,
+                'passenger_id' => $this->passenger_id,
+                'space_flight_id' => $this->space_flight_id,
+                'id_locator' => $parent->id_locator,
+                'booking_group_id' => $parent->booking_group_id,
+                'parent_reservation_id' => $parent->id,
+                'is_adenda' => true,
+                'seat_type' => $this->seat_type,
+                'total_price' => $this->total_price,
+                'discount_applied' => $this->discount_applied,
+                'status' => 'Pendiente',
+                'price_snapshot' => $this->buildPriceSnapshot(),
+            ];
 
-            $adenda->logistics()->create([
-                'training_included'            => $this->training_included && !($parent->logistics?->training_included),
+            $logisticsData = [
+                'training_included' => $this->training_included && !($parent->logistics?->training_included),
                 'passport_management_included' => $this->passport_management_included && !($parent->logistics?->passport_management_included),
-                'refund_insurance_included'    => $this->refund_insurance_included && !($parent->logistics?->refund_insurance_included),
-                'vip_transfer_included'        => $this->vip_transfer_included && !($parent->logistics?->vip_transfer_included),
-                'hotel_id'                     => $this->hotel_id ?: null,
-                'hotel_nights'                 => $this->hotel_nights ?: 0,
-                'terrestrial_flight_id'        => $this->terrestrial_flight_id ?: null,
-            ]);
+                'refund_insurance_included' => $this->refund_insurance_included && !($parent->logistics?->refund_insurance_included),
+                'vip_transfer_included' => $this->vip_transfer_included && !($parent->logistics?->vip_transfer_included),
+                'hotel_id' => $this->hotel_id ?: null,
+                'hotel_nights' => $this->hotel_nights ?: 0,
+                'terrestrial_flight_id' => $this->terrestrial_flight_id ?: null,
+            ];
 
-            session()->flash('message', 'Adenda registrada correctamente.');
+            $existingAdenda = Reservation::where('parent_reservation_id', $parent->id)
+                ->where('payment_status', '!=', 'paid')
+                ->where('is_adenda', true)
+                ->first();
+
+            if ($existingAdenda) {
+                $existingAdenda->update($adendaData);
+                $existingAdenda->logistics()->update($logisticsData);
+                session()->flash('message', 'Upgrade actualizado (pendiente de pago).');
+            } else {
+                $adenda = Reservation::create($adendaData);
+                $adenda->logistics()->create($logisticsData);
+                session()->flash('message', 'Nueva Adenda registrada correctamente.');
+            }
+
             $this->resetInputFields();
             return;
         }
 
-        // ── RAMA: MODO GRUPO ───────────────────────────────────
         if ($this->groupMode && count($this->selectedPassengers) > 0) {
-            if (!$this->user_id || !$this->space_flight_id) {
-                session()->flash('error', 'Seleccione cliente y vuelo de ida.');
+            if (!$this->user_id) {
+                session()->flash('error', 'Seleccione cliente.');
                 return;
             }
 
             // Validación Capacidad IDA
-            $seatTypeGroups = collect($this->selectedPassengers)->groupBy('seat_type');
-            foreach ($seatTypeGroups as $st => $g) {
-                if (Flight::availableSeats($this->space_flight_id, $st) < $g->count()) {
-                    session()->flash('error', "Sin cupo en IDA para clase " . strtoupper($st));
-                    return;
+            if ($this->space_flight_id) {
+                $seatTypeGroups = collect($this->selectedPassengers)->groupBy('seat_type');
+                foreach ($seatTypeGroups as $st => $g) {
+                    if (Flight::availableSeats($this->space_flight_id, $st) < $g->count()) {
+                        $msg = "Sin cupo en IDA para clase " . strtoupper($st);
+                        session()->flash('error', $msg);
+                        $this->dispatch('swal:alert', ['icon' => 'error', 'title' => 'Error de Cupo', 'text' => $msg]);
+                        return;
+                    }
+                    // Validación Capacidad VUELTA
+                    if ($this->hasReturnFlight && $this->return_flight_id) {
+                        if (Flight::availableSeats($this->return_flight_id, $st) < $g->count()) {
+                            session()->flash('error', "Sin cupo en VUELTA para clase " . strtoupper($st));
+                            return;
+                        }
+                    }
                 }
-                // Validación Capacidad VUELTA
-                if ($this->hasReturnFlight && $this->return_flight_id) {
-                    if (Flight::availableSeats($this->return_flight_id, $st) < $g->count()) {
-                        session()->flash('error', "Sin cupo en VUELTA para clase " . strtoupper($st));
+            }
+            // ── Validación de Ubicuidad ──
+            if ($this->space_flight_id) {
+                $flight = Flight::find($this->space_flight_id);
+                foreach ($this->selectedPassengers as $pData) {
+                    $pId = $pData['passenger_id'] ?? null;
+                    if (!$pId) continue;
+                    
+                    $passenger = Passenger::find($pId);
+                    if ($passenger && $passenger->hasConflictOnDate(\Carbon\Carbon::parse($flight->departure_date))) {
+                        $msg = "ERROR DE UBICUIDAD: El pasajero {$passenger->name} ya tiene una misión para esta fecha.";
+                        session()->flash('error', $msg);
+                        $this->dispatch('swal:alert', ['icon' => 'error', 'title' => 'Conflicto Logístico', 'text' => $msg]);
                         return;
                     }
                 }
@@ -1521,18 +1550,19 @@ class ManageReservations extends Component
                 \Illuminate\Support\Facades\DB::transaction(function () {
                     $groupId = (string) \Illuminate\Support\Str::uuid();
                     foreach ($this->selectedPassengers as $pIdx => $pData) {
+                        
                         // IDA
                         $resOut = Reservation::create([
-                            'user_id'          => $this->user_id,
-                            'passenger_id'     => $pData['id'],
-                            'space_flight_id'  => $this->space_flight_id,
+                            'user_id' => $this->user_id,
+                            'passenger_id' => $pData['passenger_id'],
+                            'space_flight_id' => $this->space_flight_id,
                             'booking_group_id' => $groupId,
-                            'group_name'       => null,
-                            'seat_type'        => $pData['seat_type'] ?? 'nova',
-                            'seat_number'      => $pData['seat_number'] ?? null,
-                            'total_price'      => $pData['total_price'] ?? 0,
-                            'status'           => 'Pendiente',
-                            'price_snapshot'   => $pData['priceBreakdown'] ?? [],
+                            'group_name' => null,
+                            'seat_type' => $pData['seat_type'] ?? 'nova',
+                            'seat_number' => $pData['seat_number'] ?? null,
+                            'total_price' => $pData['total_price'] ?? 0,
+                            'status' => 'Pendiente',
+                            'price_snapshot' => $pData['priceBreakdown'] ?? [],
                         ]);
                         $resOut->logistics()->create([
                             'terrestrial_flight_id' => $pData['terrestrial_flight_id'] ?? null,
@@ -1547,37 +1577,38 @@ class ManageReservations extends Component
                         // VUELTA
                         if ($this->hasReturnFlight && $this->return_flight_id) {
                             $resRet = Reservation::create([
-                                'user_id'          => $this->user_id,
-                                'passenger_id'     => $pData['id'],
-                                'space_flight_id'  => $this->return_flight_id,
+                                'user_id' => $this->user_id,
+                                'passenger_id' => $pData['passenger_id'],
+                                'space_flight_id' => $this->return_flight_id,
                                 'booking_group_id' => $groupId,
-                                'group_name'       => null,
-                                'seat_type'        => $pData['seat_type'] ?? 'nova',
-                                'total_price'      => $pData['return_total_price'] ?? 0,
-                                'status'           => 'Pendiente',
-                                'price_snapshot'   => array_merge($pData['returnPriceBreakdown'] ?? [], ['snapshot_at' => now()->toIso8601String()]),
+                                'group_name' => null,
+                                'seat_type' => $pData['seat_type'] ?? 'nova',
+                                'total_price' => $pData['return_total_price'] ?? 0,
+                                'status' => 'Pendiente',
+                                'price_snapshot' => array_merge($pData['returnPriceBreakdown'] ?? [], ['snapshot_at' => now()->toIso8601String()]),
                             ]);
                             $resRet->logistics()->create([
-                                'terrestrial_flight_id'        => $pData['return_terrestrial_flight_id'] ?? null,
-                                'hotel_id'                     => $pData['return_hotel_id'] ?? null,
-                                'hotel_nights'                 => $pData['return_hotel_nights'] ?? 0,
-                                'training_included'            => false,
+                                'terrestrial_flight_id' => $pData['return_terrestrial_flight_id'] ?? null,
+                                'hotel_id' => $pData['return_hotel_id'] ?? null,
+                                'hotel_nights' => $pData['return_hotel_nights'] ?? 0,
+                                'training_included' => false,
                                 'passport_management_included' => false,
-                                'refund_insurance_included'    => $pData['refund_insurance_included'],
-                                'vip_transfer_included'        => $pData['return_vip_transfer_included'] ?? false,
+                                'refund_insurance_included' => $pData['refund_insurance_included'],
+                                'vip_transfer_included' => $pData['return_vip_transfer_included'] ?? false,
                             ]);
                         }
                     }
                 });
                 session()->flash('message', 'Expedición grupal (Ida/Vuelta) creada exitosamente.');
+                $this->dispatch('swal:alert', ['icon' => 'success', 'title' => 'Éxito', 'text' => 'Expedición grupal creada correctamente.']);
             } catch (\Throwable $e) {
                 session()->flash('error', $e->getMessage());
+                $this->dispatch('swal:alert', ['icon' => 'error', 'title' => 'Error en Grupo', 'text' => $e->getMessage()]);
             }
             $this->resetInputFields();
             return;
         }
 
-        // ── RAMA: MODO INDIVIDUAL ──────────────────────────────
         $this->validate();
 
         if ($this->isEditing && $this->reservationId) {
@@ -1603,6 +1634,7 @@ class ManageReservations extends Component
                     'passport_management_included' => $this->passport_management_included,
                 ]);
                 session()->flash('message', 'Reserva actualizada.');
+                $this->dispatch('swal:alert', ['icon' => 'success', 'title' => 'Actualizado', 'text' => 'Los cambios se han guardado correctamente.']);
             }
         } else {
             try {
@@ -1610,16 +1642,16 @@ class ManageReservations extends Component
                     $groupId = (string) \Illuminate\Support\Str::uuid();
                     // IDA
                     $resOut = Reservation::create([
-                        'user_id'          => $this->user_id,
-                        'passenger_id'     => $this->passenger_id,
-                        'space_flight_id'  => $this->space_flight_id,
+                        'user_id' => $this->user_id,
+                        'passenger_id' => $this->passenger_id,
+                        'space_flight_id' => $this->space_flight_id,
                         'booking_group_id' => $groupId,
-                        'group_name'       => $this->expedition_title ?: null,
-                        'seat_type'        => $this->seat_type,
-                        'seat_number'      => $this->seat_number,
-                        'total_price'      => $this->total_price,
-                        'status'           => $this->status,
-                        'price_snapshot'   => $this->buildPriceSnapshot(),
+                        'group_name' => $this->expedition_title ?: null,
+                        'seat_type' => $this->seat_type,
+                        'seat_number' => $this->seat_number,
+                        'total_price' => $this->total_price,
+                        'status' => $this->status,
+                        'price_snapshot' => $this->buildPriceSnapshot(),
                     ]);
                     $resOut->logistics()->create([
                         'terrestrial_flight_id' => $this->terrestrial_flight_id ?: null,
@@ -1634,15 +1666,15 @@ class ManageReservations extends Component
                     // VUELTA
                     if ($this->hasReturnFlight && $this->return_flight_id) {
                         $resRet = Reservation::create([
-                            'user_id'          => $this->user_id,
-                            'passenger_id'     => $this->passenger_id,
-                            'space_flight_id'  => $this->return_flight_id,
+                            'user_id' => $this->user_id,
+                            'passenger_id' => $this->passenger_id,
+                            'space_flight_id' => $this->return_flight_id,
                             'booking_group_id' => $groupId,
-                            'group_name'       => $this->expedition_title ?: null,
-                            'seat_type'        => $this->seat_type,
-                            'total_price'      => $this->return_total_price,
-                            'status'           => $this->status,
-                            'price_snapshot'   => $this->returnPriceBreakdown,
+                            'group_name' => $this->expedition_title ?: null,
+                            'seat_type' => $this->seat_type,
+                            'total_price' => $this->return_total_price,
+                            'status' => $this->status,
+                            'price_snapshot' => $this->returnPriceBreakdown,
                         ]);
                         $resRet->logistics()->create([
                             'terrestrial_flight_id' => $this->return_terrestrial_flight_id ?: null,
@@ -1656,8 +1688,10 @@ class ManageReservations extends Component
                     }
                 });
                 session()->flash('message', 'Reserva(s) creada(s) correctamente.');
+                $this->dispatch('swal:alert', ['icon' => 'success', 'title' => 'Éxito', 'text' => 'Reserva(s) guardada(s) correctamente.']);
             } catch (\Throwable $e) {
                 session()->flash('error', $e->getMessage());
+                $this->dispatch('swal:alert', ['icon' => 'error', 'title' => 'Error Crítico', 'text' => $e->getMessage()]);
             }
         }
         $this->resetInputFields();
@@ -1671,11 +1705,10 @@ class ManageReservations extends Component
     public function openEditOrModal($reservationId): void
     {
         $res = Reservation::with(['passenger', 'spaceFlight'])->find($reservationId);
-        if (!$res) return;
+        if (!$res)
+            return;
 
         $groupId = $res->booking_group_id;
-
-        // Contar miembros reales (excluye adendas y canceladas)
         $members = Reservation::with(['passenger', 'spaceFlight'])
             ->where('booking_group_id', $groupId)
             ->where('is_adenda', false)
@@ -1684,28 +1717,23 @@ class ManageReservations extends Component
             ->get();
 
         if ($members->count() > 1) {
-            // Es un grupo → mostrar modal de selección
             $this->currentGroupId = $groupId;
             $this->groupEditMembers = $members->map(fn($m) => [
-                'id'              => $m->id,
-                'passenger_name'  => $m->passenger?->full_name ?? 'Sin nombre',
-                'flight_code'     => $m->spaceFlight?->flight_code ?? '—',
-                'seat_type'       => strtoupper($m->seat_type ?? 'NOVA'),
-                'total_price'     => $m->total_price,
-                'payment_status'  => $m->payment_status ?? 'pending',
-                'status'          => $m->status,
+                'id' => $m->id,
+                'passenger_name' => $m->passenger?->full_name ?? 'Sin nombre',
+                'flight_code' => $m->spaceFlight?->flight_code ?? '—',
+                'seat_type' => strtoupper($m->seat_type ?? 'NOVA'),
+                'total_price' => $m->total_price,
+                'payment_status' => $m->payment_status ?? 'pending',
+                'status' => $m->status,
             ])->values()->toArray();
             $this->showGroupEditModal = true;
         } else {
-            // Individual → edición directa
             $this->groupMode = false;
             $this->edit($reservationId);
         }
     }
 
-    /**
-     * Carga en el formulario la reserva de un miembro específico del grupo.
-     */
     /**
      * Carga en el formulario la reserva de un miembro específico del grupo.
      */
@@ -1750,6 +1778,36 @@ class ManageReservations extends Component
         $this->resetInputFields();
     }
 
+    public function openReceiptsModal($id): void
+    {
+        $res = Reservation::find($id);
+        if (!$res) return;
+
+        // Obtener el ID del padre (la reserva original)
+        $parentId = $res->is_adenda ? $res->parent_reservation_id : $res->id;
+        
+        // Cargar toda la cadena de pagos: la original + todas sus adendas pagadas
+        $chain = Reservation::where('id', $parentId)
+            ->orWhere('parent_reservation_id', $parentId)
+            ->where('payment_status', 'paid')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $receipts = [];
+        foreach ($chain as $idx => $r) {
+            $type = $r->is_adenda ? 'Upgrade #' . $idx : 'Original';
+            $receipts[] = [
+                'type' => $type,
+                'date' => $r->paid_at ? $r->paid_at->format('d/m/Y H:i') : ($r->updated_at->format('d/m/Y H:i')),
+                'url' => $r->stripe_receipt_url,
+                'amount' => $r->total_price
+            ];
+        }
+
+        $this->receiptsList = $receipts;
+        $this->showReceiptsModal = true;
+    }
+
     public function confirmDelete($id)
     {
         $this->deleteId = $id;
@@ -1773,8 +1831,8 @@ class ManageReservations extends Component
                 if ($res->payment_status === 'paid') {
                     // Cancelación parcial: solo esta fila
                     $res->update([
-                        'status'         => 'Cancelada',
-                        'seat_number'    => null,
+                        'status' => 'Cancelada',
+                        'seat_number' => null,
                         'payment_status' => 'refunded',
                     ]);
 
@@ -1787,7 +1845,6 @@ class ManageReservations extends Component
                         ? 'Pasajero cancelado del grupo. El resto de la expedición sigue activa.'
                         : 'Reserva PAGADA cancelada. El asiento ha sido liberado.';
 
-                    // ── Tarea automática al gestor del cliente ─────────────
                     $cliente = $res->user;
                     $gestorId = $cliente?->assigned_manager_id;
                     $clientName = $cliente?->name ?? 'Cliente';
@@ -1797,36 +1854,31 @@ class ManageReservations extends Component
                         $hasInsurance = $res->logistics?->refund_insurance_included ?? false;
 
                         if ($hasInsurance) {
-                            // Tiene seguro → gestionar reembolso
                             Task::create([
                                 'assigned_gestor_id' => $gestorId,
-                                'created_by'         => auth()->id(),
-                                'title'              => "💳 Gestionar Reembolso — {$clientName}",
-                                'description'        => "La reserva de {$clientName} (importe: {$amount}) ha sido cancelada.\n\nEl cliente TIENE seguro de reembolso. Contacta con el cliente para tramitar el reembolso según las condiciones de su póliza.\n\nReserva ID: #{$res->id}",
-                                'type'               => 'passenger_issue',
-                                'status'             => 'Pendiente',
-                                'priority'           => 'urgente',
-                                'payload'            => ['reservation_id' => $res->id, 'client_name' => $clientName, 'amount' => $res->total_price, 'has_insurance' => true],
+                                'created_by' => auth()->id(),
+                                'title' => "Gestionar Reembolso — {$clientName}",
+                                'description' => "La reserva de {$clientName} (importe: {$amount}) ha sido cancelada.\n\nEl cliente TIENE seguro de reembolso. Contacta con el cliente para tramitar el reembolso según las condiciones de su póliza.\n\nReserva ID: #{$res->id}",
+                                'type' => 'passenger_issue',
+                                'status' => 'Pendiente',
+                                'priority' => 'urgente',
+                                'payload' => ['reservation_id' => $res->id, 'client_name' => $clientName, 'amount' => $res->total_price, 'has_insurance' => true],
                             ]);
                             $msg .= ' Misión de reembolso asignada al gestor.';
                         } else {
-                            // Sin seguro → informar al gestor de la baja
                             Task::create([
                                 'assigned_gestor_id' => $gestorId,
-                                'created_by'         => auth()->id(),
-                                'title'              => "ℹ️ Reserva Cancelada (sin seguro) — {$clientName}",
-                                'description'        => "La reserva de {$clientName} (importe: {$amount}) ha sido cancelada.\n\nEl cliente NO tiene seguro de reembolso. Comunica la baja al cliente según la política estándar.\n\nReserva ID: #{$res->id}",
-                                'type'               => 'passenger_issue',
-                                'status'             => 'Pendiente',
-                                'priority'           => 'media',
-                                'payload'            => ['reservation_id' => $res->id, 'client_name' => $clientName, 'amount' => $res->total_price, 'has_insurance' => false],
+                                'created_by' => auth()->id(),
+                                'title' => "Reserva Cancelada (sin seguro) — {$clientName}",
+                                'description' => "La reserva de {$clientName} (importe: {$amount}) ha sido cancelada.\n\nEl cliente NO tiene seguro de reembolso. Comunica la baja al cliente según la política estándar.\n\nReserva ID: #{$res->id}",
+                                'type' => 'passenger_issue',
+                                'status' => 'Pendiente',
+                                'priority' => 'media',
+                                'payload' => ['reservation_id' => $res->id, 'client_name' => $clientName, 'amount' => $res->total_price, 'has_insurance' => false],
                             ]);
                             $msg .= ' Gestor notificado de la cancelación.';
                         }
                     }
-                    // ──────────────────────────────────────────────────────
-
-                    // ⚠️ Alerta de hotel compartido: si era el pagador, marcar al compañero
                     $snap = $res->price_snapshot;
                     if (is_array($snap) && !empty($snap['shared_hotel_key']) && ($snap['is_hotel_payer'] ?? false)) {
                         $hotelToken = $snap['shared_hotel_key'];
@@ -1841,21 +1893,20 @@ class ManageReservations extends Component
                             $orphan->update([
                                 'discount_note' => 'ACCIÓN REQUERIDA: Reasignar coste de habitación compartida (el otro ocupante canceló).'
                             ]);
-                            $msg .= ' ⚠️ Se ha marcado la reserva del compañero de habitación para reasignación de hotel.';
+                            $msg .= 'Se ha marcado la reserva del compañero de habitación para reasignación de hotel.';
 
-                            // Tarea de reasignación de hotel al gestor del compañero
                             $companionGestorId = $orphan->user?->assigned_manager_id;
                             if ($companionGestorId) {
                                 $companionName = $orphan->user?->name ?? 'Pasajero';
                                 Task::create([
                                     'assigned_gestor_id' => $companionGestorId,
-                                    'created_by'         => auth()->id(),
-                                    'title'              => "🏨 Reasignar Hotel — {$companionName} queda sin habitación compartida",
-                                    'description'        => "El compañero de habitación de {$companionName} ha cancelado su reserva. Debes reasignar el coste del hotel o buscar una nueva opción de alojamiento para {$companionName}.\n\nReserva afectada ID: #{$orphan->id}",
-                                    'type'               => 'passenger_issue',
-                                    'status'             => 'Pendiente',
-                                    'priority'           => 'alta',
-                                    'payload'            => ['reservation_id' => $orphan->id, 'client_name' => $companionName],
+                                    'created_by' => auth()->id(),
+                                    'title' => "Reasignar Hotel — {$companionName} queda sin habitación compartida",
+                                    'description' => "El compañero de habitación de {$companionName} ha cancelado su reserva. Debes reasignar el coste del hotel o buscar una nueva opción de alojamiento para {$companionName}.\n\nReserva afectada ID: #{$orphan->id}",
+                                    'type' => 'passenger_issue',
+                                    'status' => 'Pendiente',
+                                    'priority' => 'alta',
+                                    'payload' => ['reservation_id' => $orphan->id, 'client_name' => $companionName],
                                 ]);
                             }
                         }
@@ -1863,7 +1914,6 @@ class ManageReservations extends Component
 
                     session()->flash('message', $msg);
                 } else {
-                    // Borraj / no pagado: eliminación física (soft delete)
                     Reservation::where('parent_reservation_id', $res->id)->delete();
                     $res->delete();
                     session()->flash('message', $isMemberOfGroup
@@ -1875,9 +1925,6 @@ class ManageReservations extends Component
         $this->resetInputFields();
     }
 
-    /**
-     * Build a frozen price snapshot to attach to the reservation.
-     */
     private function buildPriceSnapshot(): array
     {
         $spaceFlight = Flight::find($this->space_flight_id);
@@ -1920,14 +1967,13 @@ class ManageReservations extends Component
         $discountAmt = $this->discount_applied ? round($subtotal * 0.10, 2) : 0;
         $afterCertDiscount = round($subtotal - $discountAmt, 2);
 
-        // Manual adjustment
         $adjType = $this->manual_adjustment_type;
         $adjValue = (float) $this->manual_adjustment_value;
         $manualAdj = 0;
         if ($adjType === 'pct' && $adjValue > 0) {
             $manualAdj = round($afterCertDiscount * ($adjValue / 100), 2);
         } elseif ($adjType === 'fixed' && $adjValue > 0) {
-            $manualAdj = max(0, round($afterCertDiscount - $adjValue, 2));
+            $manualAdj = min($afterCertDiscount, $adjValue);
         }
         $total = max(0, round($afterCertDiscount - $manualAdj, 2));
 
@@ -1964,16 +2010,16 @@ class ManageReservations extends Component
     public function initiatePayment($reservationId)
     {
         $res = Reservation::with('spaceFlight')->find($reservationId);
-        if (!$res) return;
+        if (!$res)
+            return;
 
         Stripe::setApiKey(config('stripe.secret'));
 
-        $groupId    = $res->booking_group_id;
-        $isGroup    = false;
+        $groupId = $res->booking_group_id;
+        $isGroup = false;
         $amountCents = 0;
         $description = '';
 
-        // Determinar si es un grupo real (más de 1 pasajero no-adenda)
         $groupMembers = Reservation::where('booking_group_id', $groupId)
             ->where('is_adenda', false)
             ->whereNotIn('payment_status', ['paid'])
@@ -1981,12 +2027,12 @@ class ManageReservations extends Component
             ->get();
 
         if ($groupMembers->count() > 1) {
-            $isGroup     = true;
-            $groupTotal  = $groupMembers->sum('total_price');
+            $isGroup = true;
+            $groupTotal = $groupMembers->sum('total_price');
             $amountCents = (int) round($groupTotal * 100);
             $description = 'Expedición Grupal — ' . $groupMembers->count() . ' pasajeros | Vuelo ' . ($res->spaceFlight?->flight_code ?? 'N/A');
         } else {
-            $snapshot    = $res->price_snapshot;
+            $snapshot = $res->price_snapshot;
             $amountCents = isset($snapshot['total'])
                 ? (int) round($snapshot['total'] * 100)
                 : (int) round($res->total_price * 100);
@@ -1995,57 +2041,60 @@ class ManageReservations extends Component
                 . ($res->discount_applied ? ' | Descuento 10% Certificado' : '');
         }
 
-        if ($amountCents < 50) $amountCents = 50;
+        if ($amountCents < 50)
+            $amountCents = 50;
+
+        // Limite de Stripe
+        $isCapped = false;
+        $originalAmount = $amountCents / 100;
+        if ($amountCents > 99999999) {
+            $amountCents = 99999999;
+            $isCapped = true;
+        }
 
         $session = StripeSession::create([
             'payment_method_types' => ['card'],
             'line_items' => [
                 [
                     'price_data' => [
-                        'currency'     => 'eur',
-                        'unit_amount'  => $amountCents,
+                        'currency' => 'eur',
+                        'unit_amount' => $amountCents,
                         'product_data' => [
-                            'name'        => 'Reserva IRIS — ' . strtoupper(substr($res->id_locator, 0, 8)),
-                            'description' => $description,
+                            'name' => 'Reserva IRIS — ' . strtoupper(substr($res->id_locator, 0, 8)) . ($isCapped ? ' (Límite Stripe)' : ''),
+                            'description' => ($isCapped ? '[PRECIO REAL: ' . number_format($originalAmount, 2, ',', '.') . '€] ' : '') . $description,
                         ],
                     ],
                     'quantity' => 1,
                 ],
             ],
-            'mode'        => 'payment',
+            'mode' => 'payment',
             'success_url' => route('stripe.success') . '?session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url'  => route('stripe.cancel') . '?session_id={CHECKOUT_SESSION_ID}',
-            'metadata'    => [
-                'reservation_id'      => $res->id,
+            'cancel_url' => route('stripe.cancel') . '?session_id={CHECKOUT_SESSION_ID}',
+            'metadata' => [
+                'reservation_id' => $res->id,
                 'reservation_locator' => $res->id_locator,
-                'booking_group_id'    => $groupId,   // ⚠️ Clave para el webhook
-                'is_group_payment'    => $isGroup ? '1' : '0',
+                'booking_group_id' => $groupId,
+                'is_group_payment' => $isGroup ? '1' : '0',
             ],
         ]);
-
-        // Marcar todas las filas del grupo (pendientes) con la sesión de Stripe
         Reservation::where('booking_group_id', $groupId)
-            ->where('payment_status', '!=', 'paid')  // ⚠️ Anti-paradoja adenda
+            ->where('payment_status', '!=', 'paid')
             ->update([
                 'stripe_session_id' => $session->id,
-                'payment_status'    => 'pending',
+                'payment_status' => 'pending',
             ]);
 
         $this->redirect($session->url);
     }
 
-    /**
-     * ── Motor de Coherencia Temporal ────────────────────────
-     * Valida la cronología entre llegada terrestre y despegue.
-     * Sugiere noches de hotel basadas en el gap.
-     */
     public function applyTemporalCoherence(): void
     {
         $this->temporalWarnings = [];
         $this->smartSuggestions = [];
 
         $outboundLaunch = $this->space_flight_id ? Flight::find($this->space_flight_id) : null;
-        if (!$outboundLaunch) return;
+        if (!$outboundLaunch)
+            return;
 
         $launchDate = \Carbon\Carbon::parse($outboundLaunch->departure_date);
 
@@ -2074,30 +2123,21 @@ class ManageReservations extends Component
         $diffDays = $arrival->diffInDays($launchDate, false);
         $warnings = [];
 
-        // 1. Antelación Terrestre: Máximo 3 meses (90 días)
         if ($diffDays > 90) {
-            $warnings[] = "⚠️ La llegada a base ocurre con demasiada antelación (" . $diffDays . " días). No debería superar los 3 meses.";
+            $warnings[] = "La llegada a base ocurre con demasiada antelación (" . $diffDays . " días). No debería superar los 3 meses.";
         }
-
-        // 2. Coherencia: No puede llegar después del lanzamiento
         if ($diffDays < 0) {
-            $warnings[] = "❌ Error crítico: El vuelo terrestre llega después del lanzamiento espacial.";
+            $warnings[] = "Error crítico: El vuelo terrestre llega después del lanzamiento espacial.";
         }
 
-        // 3. Ventana de Certificación (Iris Training)
         if ($trainingIncluded) {
-            // Entrenamiento dura 3 días, requiere 4 días de margen mínimo
             if ($diffDays < 4) {
-                $warnings[] = "❗ Si incluye Iris Training, requiere al menos 4 días de antelación para descanso y validación. Tienes " . $diffDays . " días.";
+                $warnings[] = "Si incluye Iris Training, requiere al menos 4 días de antelación para descanso y validación. Tienes " . $diffDays . " días.";
             }
         }
 
-        // 4. Sugerencia de Hotel
         if ($diffDays > 0) {
             $this->smartSuggestions[$idx] = (int) ceil($diffDays);
-            
-            // Auto-aplicar sugerencia si es 0 y hay un gap positivo (opcional, mejor solo sugerir)
-            // Por ahora solo guardamos en array para mostrar en UI
         }
 
         if (!empty($warnings)) {
@@ -2108,7 +2148,8 @@ class ManageReservations extends Component
     public function applySmartSuggestion(int $idx): void
     {
         $nights = $this->smartSuggestions[$idx] ?? 0;
-        if ($nights <= 0) return;
+        if ($nights <= 0)
+            return;
 
         if ($this->groupMode && isset($this->selectedPassengers[$idx])) {
             $this->selectedPassengers[$idx]['hotel_nights'] = $nights;

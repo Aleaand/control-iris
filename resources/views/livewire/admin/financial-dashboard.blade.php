@@ -7,7 +7,7 @@
                 Finanzas & Rentabilidad
             </h2>
             <p class="text-[var(--text-secondary)] text-sm mt-1 uppercase tracking-widest">
-                Dashboards Estratégicos: Ingresos, Gastos y Ocupación
+              Dashboard de Gestión Financiera: Ingresos, Gastos y Rentabilidad
             </p>
         </div>
 
@@ -27,12 +27,12 @@
     <div class="flex flex-col lg:flex-row gap-6 items-center">
         <div class="flex bg-[var(--tech-input-bg)] p-1 rounded-[12px] border border-[var(--border-glass)] w-full lg:w-auto">
             <button @click="activeTab = 'income'"
-                :class="activeTab === 'income' ? 'bg-[var(--neon-violet)] text-black shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'"
+                :class="activeTab === 'income' ? 'bg-[var(--neon-cyan)] text-black shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'"
                 class="flex-1 lg:flex-none px-6 py-2 rounded-[10px] text-[11px] font-black uppercase tracking-widest transition-all duration-300">
                 Ingresos
             </button>
             <button @click="activeTab = 'expenses'"
-                :class="activeTab === 'expenses' ? 'bg-[var(--neon-violet)] text-black shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'"
+                :class="activeTab === 'expenses' ? 'bg-[var(--neon-rose)] text-black shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'"
                 class="flex-1 lg:flex-none px-6 py-2 rounded-[10px] text-[11px] font-black uppercase tracking-widest transition-all duration-300">
                 Gastos
             </button>
@@ -45,15 +45,24 @@
 
         <div class="flex-1 flex flex-col md:flex-row gap-3 w-full">
             {{-- Search Bar --}}
-            <div class="relative flex-1">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" fill="none"
-                    stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input type="text" wire:model.live.debounce.300ms="search"
-                    placeholder="Buscar por ID de reserva o localizador..."
-                    class="tech-input w-full py-2.5 pl-10 pr-4 text-xs focus:outline-none transition-all rounded-[12px]">
+            <div class="relative flex-1 flex items-center gap-3">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Buscar..."
+                        class="tech-input w-full py-2.5 pl-10 pr-4 text-xs focus:outline-none transition-all rounded-[12px]">
+                </div>
+
+                @if($search || $period !== 'year' || $selectedMonth !== now()->format('m') || $selectedYear !== now()->format('Y') || $customStart || $selectedFlightId)
+                    <button wire:click="resetFilters" 
+                        class="text-[9px] font-black uppercase tracking-widest text-[var(--neon-rose)] hover:text-[var(--text-primary)] transition-colors whitespace-nowrap bg-[var(--neon-rose)]/5 px-3 py-2 rounded-[10px] border border-[var(--neon-rose)]/20 shadow-sm animate-fade-in">
+                        Ver Todo
+                    </button>
+                @endif
             </div>
 
             {{-- Period Filters --}}
@@ -94,7 +103,7 @@
 
     {{-- Global Context Bar (Manual Range Entry) --}}
     <div
-        class="flex flex-wrap items-center justify-between gap-4 px-4 py-2 bg-[var(--neon-violet)]/5 border border-[var(--neon-violet)]/10 rounded-[12px]">
+        class="flex flex-wrap items-center justify-between gap-4 px-4 py-2 bg-[var(--neon-violet)]/5 border border-[var(--neon-violet)] rounded-[12px]">
         <div class="flex items-center gap-3">
             <span
                 class="w-1.5 h-1.5 rounded-full bg-[var(--neon-violet)] {{ $period === 'custom' ? 'animate-pulse' : '' }}"></span>
@@ -132,30 +141,28 @@
         </div>
     </div>
 
-    {{-- PILLAR 1: CENTRO DE INGRESOS --}}
     <div class="space-y-6" x-show="activeTab === 'income'" x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
         <h3
-            class="text-xs font-black uppercase tracking-[0.3em] text-[var(--neon-cyan)] flex items-center gap-2 border-b border-[var(--neon-cyan)]/30 pb-2">
-            Pilar 1: Centro de Ingresos
+            class="text-xs font-black uppercase tracking-[0.3em] text-[var(--neon-cyan)] flex items-center gap-2 border-b border-[var(--neon-cyan)] pb-2">
+            Ingresos Anuales
         </h3>
             
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {{-- KPI Liquidez --}}
             <div class="flex flex-col gap-4">
-                <div class="bg-[var(--neon-cyan)]/5 border border-[var(--neon-cyan)]/20 rounded-[15px] p-5 shadow-lg">
+                <div class="bg-[var(--neon-cyan)]/5 border border-[var(--neon-cyan)] rounded-[15px] p-5 shadow-lg">
                     <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-cyan)] mb-1 opacity-80">
-                        Liquidez Inmediata</p>
+                        Ingresos Pagados</p>
                     <span class="text-3xl font-bold text-[var(--neon-cyan)]">{{ number_format($netIncome, 0, ',', '.') }}
                         €</span>
                     <div class="mt-4 pt-4 border-t border-[var(--border-glass)] flex justify-between">
                         <div>
-                            <p class="text-[9px] uppercase text-[var(--text-secondary)] font-bold">Ticket Medio</p>
+                            <p class="text-[9px] uppercase text-[var(--text-secondary)] font-bold">Media de Ingresos</p>
                             <p class="text-sm font-mono text-[var(--text-primary)]">
                                 {{ number_format($avgTicket, 0, ',', '.') }} €</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-[9px] uppercase text-[var(--text-secondary)] font-bold">Descuentos</p>
+                            <p class="text-[9px] uppercase text-[var(--text-secondary)] font-bold">Total Descuentos</p>
                             <p class="text-sm font-mono text-[var(--neon-rose)]">
                                 {{ number_format($totalDiscounts, 0, ',', '.') }} €</p>
                         </div>
@@ -164,26 +171,15 @@
             </div>
 
             {{-- Interactive Chart --}}
-            <div class="md:col-span-2 tech-card p-4 relative" x-data="incomeChartData()" x-init="initChart()"
-                @chart-refreshed.window="refreshChart($wire.chartData)">
+            <div class="md:col-span-2 tech-card p-4 relative" x-data="incomeChartData()" x-init="initChart()">
 
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Dinámica de
-                        Ingresos</p>
-                    @if($period !== 'all')
-                        <button wire:click="toggleUpcoming"
-                            class="flex items-center gap-2 px-3 py-1 bg-[var(--tech-input-bg)] border border-[var(--border-glass)] rounded-full text-[9px] font-black uppercase transition-all {{ $upcomingOnly ? 'text-[var(--neon-violet)] border-[var(--neon-violet)]/50 bg-[var(--neon-violet)]/10' : 'text-[var(--text-secondary)]' }}">
-                            <div
-                                class="w-2 h-2 rounded-full {{ $upcomingOnly ? 'bg-[var(--neon-violet)] animate-pulse' : 'bg-zinc-700' }}">
-                            </div>
-                            Solo Próximos
-                        </button>
-                    @endif
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Ingresos Mensuales</p>
                 </div>
 
                 <div class="relative w-full h-[220px]" wire:ignore>
                     <div wire:loading
-                        wire:target="setPeriod, selectedMonth, selectedYear, toggleUpcoming, customStart, customEnd"
+                        wire:target="setPeriod, selectedMonth, selectedYear, customStart, customEnd, resetFilters"
                         class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-30 rounded-[10px]">
                         <div class="flex flex-col items-center gap-2">
                             <div
@@ -201,7 +197,7 @@
         {{-- Transactions Table --}}
         <div class="tech-card overflow-hidden">
             <div class="px-5 py-3 border-b border-[var(--border-glass)] flex items-center justify-between">
-                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-cyan)]/80 flex items-center gap-2">
+                <p class="text-[10px] hidden md:flex font-bold uppercase tracking-[0.2em] text-[var(--neon-cyan)]/80 flex items-center gap-2">
                     Registro de Transacciones
                     <span class="bg-[var(--tech-input-bg)] text-[var(--neon-cyan)] px-2 py-0.5 rounded-full text-[8px] border border-[var(--border-glass)]">{{ $transactions->count() }}
                         recientes</span>
@@ -261,17 +257,10 @@
                                 <td class="px-4 py-3 text-center">
                                     @if($tx->payment_status === 'paid')
                                         <span
-                                            class="bg-[var(--neon-emerald)]/10 text-[var(--neon-emerald)] border border-[var(--neon-emerald)]/30 px-2 py-0.5 rounded-[5px] text-[9px] uppercase tracking-widest font-black">Pagado</span>
+                                            class="bg-[var(--neon-emerald)]/10 text-[var(--neon-emerald)] border border-[var(--neon-emerald)] px-2 py-0.5 rounded-[5px] text-[9px] uppercase tracking-widest font-black">Pagado</span>
                                     @else
                                         <span
-                                            class="bg-[var(--neon-amber)]/10 text-[var(--neon-amber)] border border-[var(--neon-amber)]/30 px-2 py-0.5 rounded-[5px] text-[9px] uppercase tracking-widest font-black flex items-center gap-1 justify-center">
-                                            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                                    stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                                </path>
-                                            </svg>
+                                            class="bg-[var(--neon-amber)]/10 text-[var(--neon-amber)] border border-[var(--neon-amber)] px-2 py-0.5 rounded-[5px] text-[9px] uppercase tracking-widest font-black flex items-center gap-1 justify-center">
                                             Pendiente
                                         </span>
                                     @endif
@@ -279,7 +268,7 @@
                                 <td class="px-4 py-3 text-right">
                                     @if($tx->stripe_receipt_url)
                                         <a href="{{ $tx->stripe_receipt_url }}" target="_blank"
-                                            class="inline-flex items-center gap-1 text-[9px] uppercase font-bold text-[var(--neon-cyan)] hover:text-[var(--text-primary)] transition-colors bg-[var(--neon-cyan)]/10 px-2 py-1 rounded-[5px] border border-[var(--neon-cyan)]/20 shadow-sm">
+                                            class="inline-flex items-center gap-1 text-[9px] uppercase font-bold text-[var(--neon-cyan)] hover:text-[var(--text-primary)] transition-colors bg-[var(--neon-cyan)]/10 px-2 py-1 rounded-[5px] border border-[var(--neon-cyan)] shadow-sm">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
                                                     d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -297,8 +286,10 @@
                                     Sin transacciones registradas.</td>
                             </tr>
                         @endforelse
-                        </tbody>
                     </table>
+                </div>
+                <div class="px-5">
+                    {{ $transactions->links() }}
                 </div>
             </div>
         </div>
@@ -307,21 +298,20 @@
     <div class="space-y-6" x-show="activeTab === 'expenses'" x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
         <h3
-            class="text-xs font-black uppercase tracking-[0.3em] text-[var(--neon-rose)] flex items-center gap-2 border-b border-[var(--neon-rose)]/30 pb-2">
-            Pilar 2: Control de Gastos Operativos
+            class="text-xs font-black uppercase tracking-[0.3em] text-[var(--neon-rose)] flex items-center gap-2 border-b border-[var(--neon-rose)] pb-2">
+            Gastos Operativos Anuales
         </h3>
 
         {{-- Expenses Summary Charts --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1 bg-[var(--neon-rose)]/5 border border-[var(--neon-rose)]/20 rounded-[15px] p-5 shadow-lg">
-                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-rose)] mb-1 opacity-80">Métricas
-                    de Operación</p>
+            <div class="lg:col-span-1 bg-[var(--neon-rose)]/5 border border-[var(--neon-rose)] rounded-[15px] p-5 shadow-lg">
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-rose)] mb-1 opacity-80">Gastos de Operación</p>
                 <p class="text-3xl font-bold text-[var(--neon-rose)]">
                     {{ number_format($totalExpenses, 0, ',', '.') }} €</p>
 
                 <div class="mt-4 pt-4 border-t border-[var(--border-glass)] space-y-4">
                     <div class="flex justify-between items-center text-[10px]">
-                        <span class="text-[var(--text-secondary)] font-bold uppercase">Misiones Listadas</span>
+                        <span class="text-[var(--text-secondary)] font-bold uppercase">Vuelos Listados</span>
                         <span class="text-[var(--text-primary)] font-mono">{{ $flightsWithExpenses->count() }}</span>
                     </div>
                     <div class="flex justify-between items-center text-[10px]">
@@ -333,15 +323,13 @@
             </div>
 
             {{-- Mini Expense Chart --}}
-            <div class="md:col-span-2 tech-card p-5" x-data="expenseChartData()" x-init="initChart()"
-                @chart-refreshed.window="refreshChart($wire.chartData)">
+            <div class="md:col-span-2 tech-card p-5" x-data="expenseChartData()" x-init="initChart()">
                 <div class="flex justify-between items-center mb-4">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Histórico de
-                        Gastos</p>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Gastos Mensuales</p>
                 </div>
                 <div class="h-[220px] w-full relative" wire:ignore>
                     <div wire:loading
-                        wire:target="setPeriod, selectedMonth, selectedYear, toggleUpcoming, customStart, customEnd"
+                        wire:target="setPeriod, selectedMonth, selectedYear, customStart, customEnd, resetFilters"
                         class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-30 rounded-[10px]">
                         <div class="flex flex-col items-center gap-2">
                             <div
@@ -359,17 +347,17 @@
         {{-- Grouped Expenses Table --}}
         <div class="tech-card overflow-hidden">
             <div class="px-5 py-3 border-b border-[var(--border-glass)] flex justify-between items-center bg-[var(--tech-input-bg)]">
-                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Misiones
-                    Operativas (Coste Consolidado)</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Vuelos
+                    Operativos (Coste Consolidado)</p>
                 <span class="text-[9px] text-[var(--text-secondary)] font-bold uppercase">{{ $flightsWithExpenses->count() }}
-                    misiones en sistema</span>
+                    vuelos en sistema</span>
             </div>
             <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
                 <table class="w-full text-left bg-transparent text-[11px]">
                     <thead
                         class="bg-[var(--tech-input-bg)] sticky top-0 text-[var(--text-secondary)] uppercase tracking-widest border-b border-[var(--border-glass)] z-20">
                         <tr>
-                            <th class="px-4 py-3 font-bold">Misión / Nave</th>
+                            <th class="px-4 py-3 font-bold">Vuelo / Nave</th>
                             <th class="px-4 py-3 font-bold">Fecha / Destino</th>
                             <th class="px-4 py-3 font-bold">Estado</th>
                             <th class="px-4 py-3 font-bold">Coste Total</th>
@@ -403,7 +391,7 @@
                                 <td class="px-4 py-3">
                                     <span
                                         class="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest 
-                                            {{ $f->status === 'landed' ? 'bg-[var(--neon-emerald)]/10 text-[var(--neon-emerald)] border border-[var(--neon-emerald)]/30' : 'bg-[var(--neon-cyan)]/10 text-[var(--neon-cyan)] border border-[var(--neon-cyan)]/30' }}">
+                                            {{ $f->status === 'landed' ? 'bg-[var(--neon-emerald)]/10 text-[var(--neon-emerald)] border border-[var(--neon-emerald)]' : 'bg-[var(--neon-cyan)]/10 text-[var(--neon-cyan)] border border-[var(--neon-cyan)]' }}">
                                         {{ $f->status }}
                                     </span>
                                 </td>
@@ -418,12 +406,12 @@
                                         
                                     {{-- Advanced Breakdown Modal --}}
                                     <template x-if="expanded">
-                                        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md "
+                                        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-obsidian)]/80 backdrop-blur-md "
                                             @click.self="expanded = false">
                                             <div
-                                                class="bg-[var(--bg-obsidian)] border border-[var(--border-glass)] w-full max-w-xl rounded-[25px] shadow-2xl overflow-hidden animate-slide-in text-left">
+                                                class="bg-[var(--bg-panel)] border border-[var(--border-glass)] w-full max-w-xl rounded-[25px] shadow-2xl overflow-hidden animate-slide-in text-left">
                                                 <div
-                                                    class="px-8 py-5 border-b border-[var(--border-glass)] flex justify-between items-center bg-black/20">
+                                                    class="px-8 py-5 border-b border-[var(--border-glass)] flex justify-between items-center bg-[var(--tech-input-bg)]">
                                                     <div>
                                                         <h4 class="text-xs font-black uppercase tracking-[0.3em] text-[var(--neon-rose)]">
                                                             Misión: {{ $f->flight_code }}</h4>
@@ -524,31 +512,32 @@
                                 </td>
                             </tr>
                         @endforelse
-                    </tbody>
-                </table>
+                    </table>
+                </div>
+                <div class="px-5">
+                    {{ $flightsWithExpenses->links() }}
+                </div>
             </div>
         </div>
-    </div>
 
     {{-- PILLAR 3: ANÁLISIS DE RENTABILIDAD --}}
     <div class="space-y-4 pt-4 pb-12" x-show="activeTab === 'profitability'"
         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4"
         x-transition:enter-end="opacity-100 translate-y-0">
         <h3
-            class="text-xs font-black uppercase tracking-[0.3em] text-[var(--neon-emerald)] flex items-center gap-2 border-b border-[var(--neon-emerald)]/30 pb-2">
-            Pilar 3: Análisis de Rentabilidad
+            class="text-xs font-black uppercase tracking-[0.3em] text-[var(--neon-violet)] flex items-center gap-2 border-b border-[var(--neon-violet)] pb-2">
+            Análisis de Rentabilidad Anual
         </h3>
             
         {{-- Profitability Chart --}}
-        <div class="tech-card p-5 mb-6" x-data="profitabilityChartData()" x-init="initChart()"
-            @chart-refreshed.window="refreshChart($wire.chartData)">
+        <div class="tech-card p-5 mb-6" x-data="profitabilityChartData()" x-init="initChart()">
             <div class="flex justify-between items-center mb-4">
                 <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Proyección y
                     Realidad Financiera</p>
             </div>
             <div class="h-[250px] w-full relative" wire:ignore>
                 <div wire:loading
-                    wire:target="setPeriod, selectedMonth, selectedYear, toggleUpcoming, customStart, customEnd"
+                    wire:target="setPeriod, selectedMonth, selectedYear, customStart, customEnd, resetFilters"
                     class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-30 rounded-[10px]">
                     <div class="flex flex-col items-center gap-2">
                         <div
@@ -566,44 +555,106 @@
 
             {{-- KPI Rentabilidad Proyectada vs Real --}}
             <div
-                class="lg:col-span-1 bg-[var(--neon-emerald)]/5 border border-[var(--neon-emerald)]/20 rounded-[15px] p-5 flex flex-col justify-between shadow-lg">
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-emerald)] mb-1 opacity-80">
-                        Resultado Neto (Global)</p>
-                    <span
-                        class="text-3xl font-bold {{ $totalProfit >= 0 ? 'text-[var(--neon-emerald)]' : 'text-[var(--neon-rose)]' }}">{{ number_format($totalProfit, 0, ',', '.') }}
-                        €</span>
-
-                    <div class="space-y-4 mt-6">
-                        <div
-                            class="bg-black/20 p-3 rounded-lg border border-[var(--border-glass)]">
-                            <p class="text-[8px] uppercase tracking-widest text-[var(--text-secondary)]">Gastos Globales</p>
-                            <p class="text-sm font-mono text-[var(--neon-rose)]/80 mt-1">
-                                {{ number_format($totalExpenses, 0, ',', '.') }} €</p>
+                class="lg:col-span-1 bg-[var(--neon-violet)]/5 border border-[var(--neon-violet)] rounded-[24px] p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group">
+                             
+                <div class="space-y-6">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--neon-violet)] mb-1 opacity-80">
+                            Resultado Neto Anual ({{ $selectedYear }})</p>
+                        <span
+                            class="text-4xl font-black {{ $annualProfit >= 0 ? 'text-[var(--neon-emerald)]' : 'text-[var(--neon-rose)]' }}">
+                            {{ number_format($annualProfit, 0, ',', '.') }} €
+                        </span>
+                        
+                        <div class="flex items-center gap-2 mt-3">
+                            @php
+                                $margin = $annualNetIncome > 0 ? ($annualProfit / $annualNetIncome) * 100 : 0;
+                                $roi = $annualExpenses > 0 ? ($annualProfit / $annualExpenses) * 100 : 0;
+                            @endphp
+                            <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-[var(--neon-emerald)]/10 text-[var(--neon-emerald)] border border-[var(--neon-emerald)] uppercase tracking-widest">
+                                Margen: {{ number_format($margin, 1) }}%
+                            </span>
+                            <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-[var(--neon-cyan)]/10 text-[var(--neon-cyan)] border border-[var(--neon-cyan)] uppercase tracking-widest">
+                                ROI: {{ number_format($roi, 1) }}%
+                            </span>
                         </div>
-                        <div
-                            class="bg-black/20 p-3 rounded-lg border border-[var(--border-glass)]">
-                            <p class="text-[8px] uppercase tracking-widest text-[var(--text-secondary)]">Ingresos (Netos)</p>
-                            <p class="text-sm font-mono text-[var(--neon-cyan)]/80 mt-1">
-                                {{ number_format($netIncome, 0, ',', '.') }} €</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="bg-black/30 p-4 rounded-[16px] border border-[var(--border-glass)] hover:border-[var(--neon-rose)]/30 transition-colors">
+                            <p class="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Gastos Totales ({{ $selectedYear }})</p>
+                            <p class="text-lg font-mono text-[var(--neon-rose)] font-black mt-1">
+                                {{ number_format($annualExpenses, 0, ',', '.') }} €
+                            </p>
+                        </div>
+                        
+                        <div class="bg-black/30 p-4 rounded-[16px] border border-[var(--border-glass)] hover:border-[var(--neon-cyan)]/30 transition-colors">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Ingresos Brutos ({{ $selectedYear }})</p>
+                                    <p class="text-lg font-mono text-[var(--neon-cyan)] font-black mt-1">
+                                        {{ number_format($annualGrossIncome, 0, ',', '.') }} €
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[8px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Neto: {{ number_format($annualNetIncome, 0, ',', '.') }} €</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-[var(--neon-emerald)]/5 p-5 rounded-[20px] border border-[var(--neon-emerald)] shadow-inner">
+                            <div class="flex justify-between items-end mb-3">
+                                <div>
+                                    <p class="text-[9px] font-black uppercase tracking-widest text-[var(--neon-emerald)]">Ingresos Previstos Fin de Año</p>
+                                    <p class="text-xl font-mono text-[var(--text-primary)] font-black">
+                                        {{ number_format($annualProjectedIncome, 0, ',', '.') }} €
+                                    </p>
+                                </div>
+                                @php
+                                    $progress = $annualProjectedIncome > 0 ? ($annualNetIncome / $annualProjectedIncome) * 100 : 0;
+                                    $remaining = max(0, $annualProjectedIncome - $annualNetIncome);
+                                @endphp
+                                <div class="text-right">
+                                    <p class="text-xs font-black text-[var(--neon-emerald)]">{{ number_format($progress, 1) }}%</p>
+                                </div>
+                            </div>
+                            
+                            {{-- Visual Goal Line --}}
+                            <div class="h-2.5 w-full bg-black/40 rounded-full overflow-hidden border border-[var(--border-glass)] p-0.5">
+                                <div class="h-full rounded-full bg-gradient-to-r from-[var(--neon-emerald)]/40 to-[var(--neon-emerald)] shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse" 
+                                     style="width: {{ min(100, $progress) }}%"></div>
+                            </div>
+                            
+                            @if($remaining > 0)
+                                <p class="text-[8px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] mt-3 text-center opacity-70">
+                                    Faltan {{ number_format($remaining, 0, ',', '.') }} € para alcanzar la meta
+                                </p>
+                            @else
+                                <p class="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--neon-emerald)] mt-3 text-center">
+                                    ¡Objetivo Anual Superado!
+                                </p>
+                            @endif
                         </div>
                     </div>
                 </div>
             </div>
-
-            {{-- Algoritmo Optimización de Ocupación --}}
             <div
                 class="md:col-span-2 tech-card overflow-hidden flex flex-col h-full relative">
                 <div
                     class="px-5 py-3 border-b border-[var(--border-glass)] flex justify-between items-center bg-[var(--tech-input-bg)]">
                     <div>
-                        <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-amber)]/80">Listado de
-                            Vuelos Críticos (&lt;80%)</p>
-                        <p class="text-[8px] text-[var(--text-secondary)] uppercase">Acción requerida para optimizar
-                            rentabilidad</p>
+                        @if($search)
+                            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-violet)]/80">Resultado de Búsqueda</p>
+                            <p class="text-[8px] text-[var(--text-secondary)] uppercase">Vuelo específico consultado</p>
+                        @else
+                            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-amber)]/80">Listado de
+                                Vuelos Críticos (&lt;80%)</p>
+                            <p class="text-[8px] text-[var(--text-secondary)] uppercase">Acción requerida para optimizar
+                                rentabilidad</p>
+                        @endif
                     </div>
                     <span
-                        class="text-[9px] font-bold bg-[var(--neon-amber)]/10 text-[var(--neon-amber)] border border-[var(--neon-amber)]/30 px-2 py-0.5 rounded-full">{{ $criticalFlights->count() }}
+                        class="text-[9px] font-bold bg-[var(--neon-amber)]/10 text-[var(--neon-amber)] border border-[var(--neon-amber)] px-2 py-0.5 rounded-full">{{ $criticalFlights->count() }}
                         Alertas</span>
                 </div>
                     
@@ -614,7 +665,7 @@
                                 class="p-4 flex items-center justify-between hover:bg-[var(--neon-amber)]/5 cursor-pointer transition-colors {{ $selectedFlightId == $fc->id ? 'bg-[var(--neon-amber)]/10' : '' }}">
                                 <div class="flex items-center gap-4">
                                     <div
-                                        class="w-10 h-10 rounded-[10px] bg-[var(--neon-amber)]/10 border border-[var(--neon-amber)]/20 flex items-center justify-center text-[var(--neon-amber)] shadow-sm">
+                                        class="w-10 h-10 rounded-[10px] bg-[var(--neon-amber)]/10 border border-[var(--neon-amber)] flex items-center justify-center text-[var(--neon-amber)] shadow-sm">
                                         <svg class="w-5 h-5 shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
                                                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
@@ -649,6 +700,9 @@
                         @endforelse
                     </ul>
                 </div>
+                <div class="px-5">
+                    {{ $criticalFlights->links() }}
+                </div>
             </div>
 
             {{-- Selected Flight Projections --}}
@@ -664,7 +718,7 @@
                                 Análisis de Proyección Detallado
                             </h4>
                             <p class="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest mt-1">Simulación basada en
-                                ocupación real vs potencial de nave {{ $flightDetails->starship->name }}</p>
+                                ocupación de la nave {{ $flightDetails->starship->name }}</p>
                         </div>
                         <button wire:click="$set('selectedFlightId', null)"
                             class="text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] uppercase font-bold transition-colors">Cerrar
@@ -709,53 +763,6 @@
                             <p class="text-[9px] text-[var(--text-secondary)] mt-2">Costes fijos + variables de misión.</p>
                         </div>
                     </div>
-
-                    {{-- Visual Bar Comparison --}}
-                    <div class="mt-8 pt-6 border-t border-[var(--border-glass)]">
-                        <p class="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4 text-center">
-                            Comparativa de Margen</p>
-                        <div
-                            class="h-6 w-full bg-black/40 rounded-full flex overflow-hidden border border-[var(--border-glass)] p-1">
-                            @php
-                                $maxVal = max($flightDetails->max_income, $flightDetails->operational_cost, 1);
-                                $wReal = ($flightDetails->real_income / $maxVal) * 100;
-                                $wExp = ($flightDetails->operational_cost / $maxVal) * 100;
-                            @endphp
-                            <div class="h-full bg-[var(--neon-rose)]/40 border-r border-[var(--neon-rose)]/50"
-                                style="width: {{ $wExp }}%"></div>
-                            <div class="h-full bg-[var(--neon-cyan)] shadow-[0_0_10px_rgba(6,182,212,0.3)]"
-                                style="width: {{ $wReal }}%"></div>
-                        </div>
-                        <div class="flex justify-between mt-2 px-1">
-                            <span class="text-[8px] font-bold uppercase text-[var(--neon-rose)] opacity-80">Punto de Equilibrio
-                                (Break-even)</span>
-                            <span class="text-[8px] font-bold uppercase text-[var(--neon-cyan)]">Progreso de Ingresos Reales</span>
-                        </div>
-
-                        <div class="mt-6 p-4 bg-[var(--neon-amber)]/5 border border-[var(--neon-amber)]/10 rounded-[10px]">
-                            @if($flightDetails->real_income < $flightDetails->operational_cost)
-                                <p class="text-xs text-[var(--neon-amber)] font-bold flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                                        </path>
-                                    </svg>
-                                    Atención: El vuelo actual está en pérdidas. Faltan
-                                    {{ number_format($flightDetails->operational_cost - $flightDetails->real_income, 0, ',', '.') }} € para
-                                    alcanzar el punto de equilibrio.
-                                </p>
-                            @else
-                                <p class="text-xs text-[var(--neon-emerald)] font-bold flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Vuelo Rentable: Has superado el umbral de gastos operativos. Margen actual:
-                                    {{ number_format($flightDetails->real_income - $flightDetails->operational_cost, 0, ',', '.') }} €.
-                                </p>
-                            @endif
-                        </div>
-                    </div>
                 </div>
             @endif
         </div>
@@ -764,10 +771,6 @@
     {{-- Stripe Reminder --}}
     <div
         class="border border-dashed border-[var(--border-glass)] rounded-[10px] p-4 flex items-center gap-3 bg-black/10 opacity-70">
-        <svg class="w-4 h-4 text-[var(--neon-violet)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
         <p class="text-[9px] text-[var(--text-secondary)] leading-relaxed uppercase tracking-widest">
             Stripe Test Mode Activo. Los pagos en la tabla principal son generados desde la tarjeta de prueba de la API en
             el Sandbox de Iris Aerospace.
@@ -777,118 +780,87 @@
     <!-- Cargar Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        function fmtEur(val) {
+            if (val >= 1000000) return (val / 1000000).toFixed(2).replace(/\.00$/, '') + ' M €';
+            if (val >= 1000)    return (val / 1000).toFixed(1).replace(/\.0$/, '') + ' k €';
+            return val + ' €';
+        }
+
+        function rebuildChart(canvasEl, config) {
+            const existing = Chart.getChart(canvasEl);
+            if (existing) existing.destroy();
+            return new Chart(canvasEl, config);
+        }
+
+        const baseOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top', labels: { boxWidth: 8, usePointStyle: true, font: { size: 10 } } },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.85)',
+                    titleFont: { size: 11 },
+                    bodyFont: { size: 11, weight: 'bold' },
+                    callbacks: { label: (ctx) => (ctx.dataset.label ? ctx.dataset.label + ': ' : '') + fmtEur(ctx.parsed.y) }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    border: { display: false },
+                    ticks: { color: '#71717a', font: { size: 9 }, callback: fmtEur }
+                },
+                x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 9 } } }
+            }
+        };
+
         function incomeChartData() {
             return {
                 chart: null,
-                refreshChart(newData) {
-                    if(!newData || !newData.labels || !this.chart) return;
-                    this.chart.data.labels = newData.labels || [];
-                    this.chart.data.datasets[0].data = newData.net || [];
-                    this.chart.update();
-                },
-                initChart() {
+                buildChart(data) {
                     if (!this.$refs.chartCanvas) return;
-                    const ctx = this.$refs.chartCanvas.getContext('2d');
-                    Chart.defaults.color = '#71717a';
-                    Chart.defaults.font.family = "'Helvetica Neue', Helvetica, Arial, sans-serif";
-                    
-                    if (this.chart) this.chart.destroy();
-
-                    this.chart = new Chart(ctx, {
+                    this.chart = rebuildChart(this.$refs.chartCanvas, {
                         type: 'bar',
                         data: {
-                            labels: this.$wire.chartData.labels || [],
-                            datasets: [
-                                {
-                                    label: 'Ingresos Netos',
-                                    data: this.$wire.chartData.net || [],
-                                    backgroundColor: 'rgba(139, 92, 246, 0.4)',
-                                    borderColor: 'rgba(139, 92, 246, 1)',
-                                    borderWidth: 1,
-                                    borderRadius: 4
-                                }
-                            ]
+                            labels: data.labels || [],
+                            datasets: [{
+                                label: 'Ingresos Netos',
+                                data: data.net || [],
+                                backgroundColor: 'rgba(139, 92, 246, 0.4)',
+                                borderColor: 'rgba(139, 92, 246, 1)',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }]
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            interaction: {
-                                mode: 'index',
-                                intersect: false,
-                            },
-                            plugins: {
-                                legend: {
-                                    position: 'top',
-                                    labels: { boxWidth: 8, usePointStyle: true, font: {size: 10} }
-                                },
-                                tooltip: {
-                                    backgroundColor: 'rgba(0,0,0,0.8)',
-                                    titleFont: { size: 11 },
-                                    bodyFont: { size: 11, weight: 'bold' },
-                                    callbacks: {
-                                        label: function(context) {
-                                            let label = context.dataset.label || '';
-                                            if (label) label += ': ';
-                                            if (context.parsed.y !== null) {
-                                                let val = context.parsed.y;
-                                                if (val >= 1000000) {
-                                                    label += (val / 1000000).toFixed(2).replace(/\.00$/, '') + ' M €';
-                                                } else if (val >= 1000) {
-                                                    label += (val / 1000).toFixed(1).replace(/\.0$/, '') + ' k €';
-                                                } else {
-                                                    label += val + ' €';
-                                                }
-                                            }
-                                            return label;
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    grid: { color: 'rgba(255,255,255,0.05)' },
-                                    ticks: {
-                                        callback: function(val) { 
-                                            if (val >= 1000000) return (val / 1000000).toFixed(1).replace(/\.0$/, '') + ' M €';
-                                            if (val >= 1000) return (val / 1000).toFixed(1).replace(/\.0$/, '') + ' k €';
-                                            return val + ' €';
-                                        },
-                                        font: { size: 9 }
-                                    }
-                                },
-                                x: { grid: { display: false }, ticks: { font: { size: 9 } } }
-                            }
-                        }
+                        options: { ...baseOptions, maintainAspectRatio: false }
                     });
+                },
+                initChart() {
+                    Chart.defaults.color = '#71717a';
+                    this.buildChart(this.$wire.chartData || {});
 
-                    this.$watch('$wire.chartData', (newData) => {
-                        this.refreshChart(newData);
+                    window.addEventListener('chart-refreshed', () => {
+                        this.$nextTick(() => this.buildChart(this.$wire.chartData || {}));
                     });
+                    this.$watch('$wire.chartData', (d) => this.buildChart(d || {}));
                 }
             }
         }
+
         function expenseChartData() {
             return {
                 chart: null,
-                refreshChart(newData) {
-                    if(!newData || !newData.labels || !this.chart) return;
-                    this.chart.data.labels = newData.labels || [];
-                    this.chart.data.datasets[0].data = newData.expenses || [];
-                    this.chart.update();
-                },
-                initChart() {
+                buildChart(data) {
                     if (!this.$refs.canvas) return;
-                    const ctx = this.$refs.canvas.getContext('2d');
-                    if (this.chart) this.chart.destroy();
-
-                    this.chart = new Chart(ctx, {
+                    this.chart = rebuildChart(this.$refs.canvas, {
                         type: 'bar',
                         data: {
-                            labels: this.$wire.chartData.labels || [],
+                            labels: data.labels || [],
                             datasets: [{
                                 label: 'Gastos',
-                                data: this.$wire.chartData.expenses || [],
+                                data: data.expenses || [],
                                 backgroundColor: 'rgba(239, 68, 68, 0.4)',
                                 borderColor: '#ef4444',
                                 borderWidth: 1,
@@ -896,70 +868,36 @@
                             }]
                         },
                         options: {
+                            ...baseOptions,
                             maintainAspectRatio: false,
-                            responsive: true,
-                            plugins: { 
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: 'rgba(0,0,0,0.8)',
-                                    titleFont: { size: 11 },
-                                    bodyFont: { size: 11, weight: 'bold' },
-                                    callbacks: {
-                                        label: (ctx) => {
-                                            let val = ctx.parsed.y;
-                                            if (val >= 1000000) return (val / 1000000).toFixed(2).replace(/\.00$/, '') + ' M €';
-                                            if (val >= 1000) return (val / 1000).toFixed(1).replace(/\.0$/, '') + ' k €';
-                                            return val + ' €';
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                y: { 
-                                    beginAtZero: true, 
-                                    grid: { color: 'rgba(255,255,255,0.05)' }, 
-                                    border: { display: false }, 
-                                    ticks: { 
-                                        color: '#71717a', 
-                                        font: { size: 9 },
-                                        callback: (val) => {
-                                            if (val >= 1000000) return (val / 1000000).toFixed(1).replace(/\.0$/, '') + ' M €';
-                                            if (val >= 1000) return (val / 1000).toFixed(1).replace(/\.0$/, '') + ' k €';
-                                            return val + ' €';
-                                        }
-                                    } 
-                                },
-                                x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 9 } } }
-                            }
+                            plugins: { ...baseOptions.plugins, legend: { display: false } }
                         }
                     });
+                },
+                initChart() {
+                    this.buildChart(this.$wire.chartData || {});
+
+                    window.addEventListener('chart-refreshed', () => {
+                        this.$nextTick(() => this.buildChart(this.$wire.chartData || {}));
+                    });
+
+                    this.$watch('$wire.chartData', (d) => this.buildChart(d || {}));
                 }
             }
         }
         function profitabilityChartData() {
             return {
                 chart: null,
-                refreshChart(newData) {
-                    if(!newData || !newData.labels || !this.chart) return;
-                    this.chart.data.labels = newData.labels || [];
-                    this.chart.data.datasets[0].data = newData.projected || [];
-                    this.chart.data.datasets[1].data = newData.net || [];
-                    this.chart.data.datasets[2].data = newData.expenses || [];
-                    this.chart.update();
-                },
-                initChart() {
+                buildChart(data) {
                     if (!this.$refs.canvas) return;
-                    const ctx = this.$refs.canvas.getContext('2d');
-                    if (this.chart) this.chart.destroy();
-
-                    this.chart = new Chart(ctx, {
+                    this.chart = rebuildChart(this.$refs.canvas, {
                         type: 'bar',
                         data: {
-                            labels: this.$wire.chartData.labels || [],
+                            labels: data.labels || [],
                             datasets: [
                                 {
                                     label: 'Ingresos Previstos (Potencial)',
-                                    data: this.$wire.chartData.projected || [],
+                                    data: data.projected || [],
                                     backgroundColor: 'rgba(52, 211, 153, 0.15)',
                                     borderColor: 'rgba(52, 211, 153, 0.3)',
                                     borderWidth: 1,
@@ -967,7 +905,7 @@
                                 },
                                 {
                                     label: 'Ingresos Reales',
-                                    data: this.$wire.chartData.net || [],
+                                    data: data.net || [],
                                     backgroundColor: 'rgba(139, 92, 246, 0.5)',
                                     borderColor: 'rgba(139, 92, 246, 1)',
                                     borderWidth: 1,
@@ -975,7 +913,7 @@
                                 },
                                 {
                                     label: 'Gastos Operativos',
-                                    data: this.$wire.chartData.expenses || [],
+                                    data: data.expenses || [],
                                     backgroundColor: 'rgba(239, 68, 68, 0.5)',
                                     borderColor: 'rgba(239, 68, 68, 1)',
                                     borderWidth: 1,
@@ -983,64 +921,17 @@
                                 }
                             ]
                         },
-                        options: {
-                            maintainAspectRatio: false,
-                            responsive: true,
-                            interaction: {
-                                mode: 'index',
-                                intersect: false,
-                            },
-                            plugins: { 
-                                legend: { 
-                                    position: 'top',
-                                    labels: { boxWidth: 8, usePointStyle: true, font: {size: 10} }
-                                },
-                                tooltip: {
-                                    backgroundColor: 'rgba(0,0,0,0.8)',
-                                    titleFont: { size: 11 },
-                                    bodyFont: { size: 11, weight: 'bold' },
-                                    callbacks: {
-                                        label: (context) => {
-                                            let label = context.dataset.label || '';
-                                            if (label) label += ': ';
-                                            if (context.parsed.y !== null) {
-                                                let val = context.parsed.y;
-                                                if (val >= 1000000) {
-                                                    label += (val / 1000000).toFixed(2).replace(/\.00$/, '') + ' M €';
-                                                } else if (val >= 1000) {
-                                                    label += (val / 1000).toFixed(1).replace(/\.0$/, '') + ' k €';
-                                                } else {
-                                                    label += val + ' €';
-                                                }
-                                            }
-                                            return label;
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                y: { 
-                                    beginAtZero: true, 
-                                    grid: { color: 'rgba(255,255,255,0.05)' }, 
-                                    border: { display: false }, 
-                                    ticks: { 
-                                        color: '#71717a', 
-                                        font: { size: 9 },
-                                        callback: (val) => {
-                                            if (val >= 1000000) return (val / 1000000).toFixed(1).replace(/\.0$/, '') + ' M €';
-                                            if (val >= 1000) return (val / 1000).toFixed(1).replace(/\.0$/, '') + ' k €';
-                                            return val + ' €';
-                                        }
-                                    } 
-                                },
-                                x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 9 } } }
-                            }
-                        }
+                        options: { ...baseOptions, maintainAspectRatio: false }
+                    });
+                },
+                initChart() {
+                    this.buildChart(this.$wire.chartData || {});
+
+                    window.addEventListener('chart-refreshed', () => {
+                        this.$nextTick(() => this.buildChart(this.$wire.chartData || {}));
                     });
 
-                    this.$watch('$wire.chartData', (newData) => {
-                        this.refreshChart(newData);
-                    });
+                    this.$watch('$wire.chartData', (d) => this.buildChart(d || {}));
                 }
             }
         }
