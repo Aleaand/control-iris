@@ -98,15 +98,32 @@
                     <div class="divide-y divide-[var(--border-glass)]">
                         @forelse($reservations as $res)
                             @php
-                                $groupCount = \App\Models\Reservation::where('booking_group_id', $res->booking_group_id)
-                                    ->where('is_adenda', false)
+                                $allReservationsInGroup = \App\Models\Reservation::where('booking_group_id', $res->booking_group_id)
+                                    ->whereNull('deleted_at')
+                                    ->get();
+
+                                $groupCount = $allReservationsInGroup->where('is_adenda', false)
                                     ->whereNotIn('status', ['Cancelada', 'Cancelled'])
                                     ->count();
-                                $adendaCount = \App\Models\Reservation::where('booking_group_id', $res->booking_group_id)
-                                    ->where('is_adenda', true)
-                                    ->count();
+
+                                $adendaCount = $allReservationsInGroup->where('is_adenda', true)->count();
                                 $isGroup = $groupCount > 1;
-                                $payStatus = $res->payment_status ?? 'pending';
+
+                                // Global price: sum of all active reservations (original + adendas)
+                                $totalGroupPrice = $allReservationsInGroup->whereNotIn('status', ['Cancelada', 'Cancelled'])->sum('total_price');
+
+                                // Global payment status: 'paid' only if ALL active items are paid
+                                $anyPendingPayment = $allReservationsInGroup->whereNotIn('status', ['Cancelada', 'Cancelled'])
+                                    ->where('payment_status', '!=', 'paid')
+                                    ->count() > 0;
+                                $payStatus = $anyPendingPayment ? 'pending' : 'paid';
+
+                                // Global operation status: 'Pendiente' if any is 'Pendiente'
+                                $anyPendingStatus = $allReservationsInGroup->whereNotIn('status', ['Cancelada', 'Cancelled'])
+                                    ->where('status', 'Pendiente')
+                                    ->count() > 0;
+                                $globalStatus = $anyPendingStatus ? 'Pendiente' : $res->status;
+
                                 $hasHotelAlert = str_contains($res->discount_note ?? '', 'ACCIÓN REQUERIDA');
                             @endphp
 
@@ -147,11 +164,11 @@
                                             <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                                 <span
                                                     class="text-[9px] text-[var(--text-secondary)] uppercase font-bold">Viajeros:</span>
-                                                @foreach($res->group as $member)
-                                                    <span class="text-[9px] text-[var(--text-primary)] font-medium italic">
-                                                        {{ $member->passenger?->full_name }}{{ !$loop->last ? ',' : '' }}
-                                                    </span>
-                                                @endforeach
+                                                 @foreach($res->group->unique('passenger_id') as $member)
+                                                     <span class="text-[9px] text-[var(--text-primary)] font-medium italic">
+                                                         {{ $member->passenger?->full_name }}{{ !$loop->last ? ',' : '' }}
+                                                     </span>
+                                                 @endforeach
                                             </div>
                                         </div>
 
@@ -218,10 +235,10 @@
                                                     CONEXIÓN T.
                                                 </span>
                                             @endif
-                                            <span
-                                                class="px-2 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded text-[8px] font-black text-emerald-400 uppercase tracking-widest">
-                                                STATUS: {{ $res->status }}
-                                            </span>
+                                             <span
+                                                 class="px-2 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded text-[8px] font-black text-emerald-400 uppercase tracking-widest">
+                                                 STATUS: {{ $globalStatus }}
+                                             </span>
                                         </div>
                                     </div>
 
@@ -233,7 +250,7 @@
                                                 class="text-[8px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">Facturación
                                                 Total</span>
                                             <span
-                                                class="text-lg font-black text-emerald-400">{{ number_format($res->total_price, 2, ',', '.') }}€</span>
+                                                class="text-lg font-black text-emerald-400">{{ number_format($totalGroupPrice, 2, ',', '.') }}€</span>
 
                                             <div class="w-full h-px bg-[var(--border-glass)] my-1"></div>
 

@@ -525,7 +525,7 @@ class ManageUsers extends Component
         Task::create([
             'assigned_gestor_id' => $targetGestor->id,
             'created_by'         => auth()->id(),
-            'title'              => "📋 Cartera Recibida — Clientes de {$gestor->name}",
+            'title'              => "Cartera Recibida — Clientes de {$gestor->name}",
             'description'        => "Has recibido la cartera de clientes del gestor {$gestor->name} que ha sido eliminado del sistema.\n\nClientes asignados: {$clientNames}\n\nRevisa sus expedientes y retoma la gestión de sus reservas activas.",
             'type'               => 'general',
             'status'             => 'Pendiente',
@@ -571,7 +571,7 @@ class ManageUsers extends Component
                     Task::create([
                         'assigned_gestor_id' => $user->assigned_manager_id,
                         'created_by'         => auth()->id(),
-                        'title'              => "👤 Baja de Cliente — {$user->name}",
+                        'title'              => "Baja de Cliente — {$user->name}",
                         'description'        => "El cliente {$user->name} ha sido dado de baja del sistema (cuenta desactivada).\n\nSe han cancelado {$cancelledCount} reserva(s) activa(s). Comunica la baja al cliente y gestiona cualquier incidencia pendiente.",
                         'type'               => 'passenger_issue',
                         'status'             => 'Pendiente',

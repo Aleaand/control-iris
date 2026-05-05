@@ -27,11 +27,11 @@ class ContactLog extends Model
     public function typeLabel(): string
     {
         return match($this->type) {
-            'nota'        => '📝 Nota',
-            'llamada'     => '📞 Llamada',
-            'email'       => '📧 Email',
-            'videollamada' => '🎥 Videollamada',
-            default       => '📋 Otro',
+            'nota'        => 'Nota',
+            'llamada'     => 'Llamada',
+            'email'       => 'Email',
+            'videollamada' => 'Videollamada',
+            default       => 'Otro',
         };
     }
 }

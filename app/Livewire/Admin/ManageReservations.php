@@ -2021,24 +2021,33 @@ class ManageReservations extends Component
         $description = '';
 
         $groupMembers = Reservation::where('booking_group_id', $groupId)
-            ->where('is_adenda', false)
             ->whereNotIn('payment_status', ['paid'])
             ->whereNotIn('status', ['Cancelada', 'Cancelled'])
             ->get();
 
+        if ($groupMembers->count() === 0) {
+            session()->flash('error', 'No hay pagos pendientes para este grupo de reserva.');
+            return;
+        }
+
+        $groupTotal = $groupMembers->sum('total_price');
+        $amountCents = (int) round($groupTotal * 100);
+        
         if ($groupMembers->count() > 1) {
             $isGroup = true;
-            $groupTotal = $groupMembers->sum('total_price');
-            $amountCents = (int) round($groupTotal * 100);
-            $description = 'Expedición Grupal — ' . $groupMembers->count() . ' pasajeros | Vuelo ' . ($res->spaceFlight?->flight_code ?? 'N/A');
+            $adendaCount = $groupMembers->where('is_adenda', true)->count();
+            $description = 'Expedición Grupal — ' . $groupMembers->where('is_adenda', false)->count() . ' pasajeros';
+            if ($adendaCount > 0) {
+                $description .= " + {$adendaCount} Upgrades";
+            }
+            $description .= ' | Vuelo ' . ($res->spaceFlight?->flight_code ?? 'N/A');
         } else {
-            $snapshot = $res->price_snapshot;
-            $amountCents = isset($snapshot['total'])
-                ? (int) round($snapshot['total'] * 100)
-                : (int) round($res->total_price * 100);
-            $description = 'Vuelo ' . ($res->spaceFlight?->flight_code ?? 'N/A')
-                . ' | Clase ' . ($res->seat_type ?? 'Estándar')
-                . ($res->discount_applied ? ' | Descuento 10% Certificado' : '');
+            // Un solo item pendiente (puede ser el original o una adenda)
+            $pendingItem = $groupMembers->first();
+            $isGroup = false;
+            $description = ($pendingItem->is_adenda ? '[UPGRADE] ' : '') . 'Vuelo ' . ($pendingItem->spaceFlight?->flight_code ?? 'N/A')
+                . ' | Clase ' . ($pendingItem->seat_type ?? 'Estándar')
+                . ($pendingItem->discount_applied ? ' | Descuento 10% Certificado' : '');
         }
 
         if ($amountCents < 50)

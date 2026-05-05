@@ -49,7 +49,7 @@ class StripeController extends Controller
                     } catch (\Exception $e) { /* non-critical */ }
                 }
 
-                // ⚠️ Confirmar TODAS las filas del grupo (no solo la primera)
+                // Confirmar TODAS las filas del grupo (no solo la primera)
                 // Anti-paradoja: solo actualizamos filas que AÚN NO están pagadas
                 $toUpdate = Reservation::with('logistics', 'passenger')
                     ->where('booking_group_id', $groupId)
@@ -70,7 +70,7 @@ class StripeController extends Controller
         }
 
         return redirect()->route('admin.finances')
-            ->with('message', '💳 Pago confirmado por Stripe. Reserva ' . ($reservation?->id_locator ? substr($reservation->id_locator, 0, 8) : '') . '... marcada como PAGADA.');
+            ->with('message', 'Pago confirmado por Stripe. Reserva ' . ($reservation?->id_locator ? substr($reservation->id_locator, 0, 8) : '') . '... marcada como PAGADA.');
     }
 
     /**
@@ -86,7 +86,7 @@ class StripeController extends Controller
         }
 
         return redirect()->route('admin.reservations')
-            ->with('error', '⚠️ El proceso de pago fue cancelado en Stripe.');
+            ->with('error', 'El proceso de pago fue cancelado en Stripe.');
     }
 
     /**
@@ -112,7 +112,7 @@ class StripeController extends Controller
             $session = $event->data->object;
 
             if ($session->payment_status === 'paid') {
-                // ⚠️ Usar booking_group_id del metadata para actualizar todo el grupo
+                // Usar booking_group_id del metadata para actualizar todo el grupo
                 $groupId = $session->metadata->booking_group_id ?? null;
 
                 if ($groupId) {

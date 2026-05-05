@@ -20,7 +20,7 @@ class ManageFlights extends Component
     use WithPagination, HasResponsivePagination;
     #[\Livewire\Attributes\Url]
     public $search = '';
-    
+
     #[\Livewire\Attributes\Url(as: 'period')]
     public $periodFilter = 'all';
 
@@ -478,7 +478,8 @@ class ManageFlights extends Component
                 if (!$this->user_modified_arrival_date) {
                     $this->arrival_date = $this->suggested_arrival_date;
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+            }
         }
 
         $this->flight_hours_return = 0;
@@ -490,11 +491,12 @@ class ManageFlights extends Component
                     $sugg = Carbon::parse($this->return_departure_date)
                         ->addHours($this->flight_hours_return)
                         ->format('Y-m-d\TH:i');
-                    
+
                     if (!$this->user_modified_return_arrival_date) {
                         $this->return_arrival_date = $sugg;
                     }
-                } catch (\Exception $e) {}
+                } catch (\Exception $e) {
+                }
             }
         }
 
@@ -771,8 +773,8 @@ class ManageFlights extends Component
         }
 
         $flights = $query->orderBy('departure_date', $this->sortDir)
-                         ->orderBy('id', 'desc')
-                         ->paginate($this->getPerPage());
+            ->orderBy('id', 'desc')
+            ->paginate($this->getPerPage());
 
         $widgets = [
             'today' => Flight::whereDate('departure_date', Carbon::today())->count(),
@@ -1093,17 +1095,17 @@ class ManageFlights extends Component
 
                     Task::create([
                         'assigned_gestor_id' => $gestor->id,
-                        'created_by'         => auth()->id(),
-                        'title'              => "⏰ Retraso en Vuelo {$flight->flight_code} — Notifica a tus pasajeros",
-                        'description'        => "El vuelo {$flight->flight_code} ha cambiado su fecha de salida.\n\n📅 Fecha anterior: {$oldStr}\n📅 Nueva fecha: {$newStr}\n\nNotifica a tus pasajeros afectados: {$passengerNames}",
-                        'type'               => 'policy_change',
-                        'status'             => 'Pendiente',
-                        'priority'           => 'alta',
-                        'payload'            => [
-                            'flight_id'       => $flight->id,
-                            'flight_code'     => $flight->flight_code,
-                            'old_departure'   => $oldDeparture->toDateTimeString(),
-                            'new_departure'   => $newDeparture->toDateTimeString(),
+                        'created_by' => auth()->id(),
+                        'title' => "Retraso en Vuelo {$flight->flight_code} — Notifica a tus pasajeros",
+                        'description' => "El vuelo {$flight->flight_code} ha cambiado su fecha de salida.\n\nFecha anterior: {$oldStr}\nNueva fecha: {$newStr}\n\nNotifica a tus pasajeros afectados: {$passengerNames}",
+                        'type' => 'policy_change',
+                        'status' => 'Pendiente',
+                        'priority' => 'alta',
+                        'payload' => [
+                            'flight_id' => $flight->id,
+                            'flight_code' => $flight->flight_code,
+                            'old_departure' => $oldDeparture->toDateTimeString(),
+                            'new_departure' => $newDeparture->toDateTimeString(),
                         ],
                     ]);
                 }
@@ -1360,7 +1362,7 @@ class ManageFlights extends Component
             }
 
             $outbound = $isReturn ? $siblingFlight : $flight;
-            $return   = $isReturn ? $flight : $siblingFlight;
+            $return = $isReturn ? $flight : $siblingFlight;
 
             // Collect all affected flight IDs
             $flightIds = collect([$outbound?->id, $return?->id])->filter()->values();
@@ -1372,15 +1374,15 @@ class ManageFlights extends Component
             }
             $affectedGestors = $affectedGestors->unique('id');
 
-            $cancelReasonLabel = match($this->cancelReason) {
+            $cancelReasonLabel = match ($this->cancelReason) {
                 'technical' => 'causa técnica de la nave/sistemas',
-                'weather'   => 'condiciones meteorológicas espaciales adversas',
-                default     => 'decisión administrativa',
+                'weather' => 'condiciones meteorológicas espaciales adversas',
+                default => 'decisión administrativa',
             };
 
-            $refundNote = match($this->cancelReason) {
+            $refundNote = match ($this->cancelReason) {
                 'technical', 'weather' => 'Los clientes CON seguro de reembolso tienen derecho a reembolso 100% o reubicación gratuita. Gestiona las opciones con cada pasajero.',
-                default                => 'Aplica política estándar. Los clientes CON seguro recibirán reembolso según las condiciones de su póliza.',
+                default => 'Aplica política estándar. Los clientes CON seguro recibirán reembolso según las condiciones de su póliza.',
             };
 
             $priority = ($this->cancelReason === 'technical' || $this->cancelReason === 'weather') ? 'urgente' : 'alta';
@@ -1399,15 +1401,15 @@ class ManageFlights extends Component
 
                 Task::create([
                     'assigned_gestor_id' => $gestor->id,
-                    'created_by'         => auth()->id(),
-                    'title'              => "✈️ Vuelo {$flightCode} Cancelado — Gestiona a tus pasajeros",
-                    'description'        => "El vuelo {$flightCode} ha sido cancelado por {$cancelReasonLabel}.\n\n{$refundNote}\n\nPasajeros afectados de tu cartera: {$passengerNames}",
-                    'type'               => 'flight_cancelled',
-                    'status'             => 'Pendiente',
-                    'priority'           => $priority,
-                    'payload'            => [
-                        'flight_id'     => $outbound?->id,
-                        'flight_code'   => $flightCode,
+                    'created_by' => auth()->id(),
+                    'title' => "Vuelo {$flightCode} Cancelado — Gestiona a tus pasajeros",
+                    'description' => "El vuelo {$flightCode} ha sido cancelado por {$cancelReasonLabel}.\n\n{$refundNote}\n\nPasajeros afectados de tu cartera: {$passengerNames}",
+                    'type' => 'flight_cancelled',
+                    'status' => 'Pendiente',
+                    'priority' => $priority,
+                    'payload' => [
+                        'flight_id' => $outbound?->id,
+                        'flight_code' => $flightCode,
                         'cancel_reason' => $this->cancelReason,
                     ],
                 ]);
