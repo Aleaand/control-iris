@@ -64,12 +64,13 @@ class FinancialDashboard extends Component
             });
         }
 
-        // Income Metrics
+        // Income Metrics based on FLIGHT departure date (Operational View)
         $paidReservations = (clone $query)
             ->where('payment_status', 'paid')
-            ->whereBetween('paid_at', [$start, $end])
+            ->whereHas('spaceFlight', function($q) use ($start, $end) {
+                $q->whereBetween('departure_date', [$start, $end]);
+            })
             ->get();
-
         $grossIncome = 0;
         $totalDiscounts = 0;
         $netIncome = 0;
@@ -83,11 +84,16 @@ class FinancialDashboard extends Component
             $netIncome += $res->total_price;
         }
 
+        // Subtract actual refunds from net income
+        $refundsQuery = \App\Models\Expense::where('category', 'Reembolso')
+            ->whereBetween('expense_date', [$start, $end]);
+        $totalRefunds = $refundsQuery->sum('amount');
+        $netIncome -= $totalRefunds;
+
         // Consolidated Expenses
         $flightsInPeriod = (clone $flightQuery)
             ->whereBetween('departure_date', [$start, $end])
             ->where('status', '!=', 'cancelled')
-            ->where('departure_date', '<=', now())
             ->get();
 
         $totalExpenses = $flightsInPeriod->sum('operational_cost');
@@ -101,7 +107,9 @@ class FinancialDashboard extends Component
 
         $selectedYearVal = $this->selectedYear ?? now()->year;
         $annualPaidReservations = Reservation::where('payment_status', 'paid')
-            ->whereYear('paid_at', $selectedYearVal)
+            ->whereHas('spaceFlight', function($q) use ($selectedYearVal) {
+                $q->whereYear('departure_date', $selectedYearVal);
+            })
             ->get();
 
         $annualNetIncome = $annualPaidReservations->sum('total_price');
@@ -115,9 +123,13 @@ class FinancialDashboard extends Component
             }
         }
 
+        $annualRefunds = \App\Models\Expense::where('category', 'Reembolso')
+            ->whereYear('expense_date', $selectedYearVal)
+            ->sum('amount');
+        $annualNetIncome -= $annualRefunds;
+
         $annualExpenses = \App\Models\Flight::where('status', '!=', 'cancelled')
             ->whereYear('departure_date', $selectedYearVal)
-            ->where('departure_date', '<=', now())
             ->sum('operational_cost');
 
         $annualProjectedIncome = \App\Models\Flight::where('status', '!=', 'cancelled')
@@ -128,15 +140,14 @@ class FinancialDashboard extends Component
         $annualProfit = $annualNetIncome - $annualExpenses;
 
         $transactions = (clone $query)
-            ->whereIn('payment_status', ['paid', 'pending'])
+            ->whereIn('payment_status', ['paid', 'pending', 'refunded'])
             ->whereBetween('created_at', [$start, $end])
             ->orderByDesc('created_at')
             ->paginate($this->getPerPage(), pageName: 'txPage');
 
         $flightsWithExpensesQuery = \App\Models\Flight::with(['starship', 'destination'])
             ->whereBetween('departure_date', [$start, $end])
-            ->where('status', '!=', 'cancelled')
-            ->where('departure_date', '<=', now());
+            ->where('status', '!=', 'cancelled');
 
         if ($this->search) {
             $flightsWithExpensesQuery->where(function ($q) {
@@ -169,6 +180,7 @@ class FinancialDashboard extends Component
             'avgTicket' => $avgTicket,
             'pending' => $pending,
             'failed' => $failed,
+            'totalRefunds' => $totalRefunds,
             'annualNetIncome' => $annualNetIncome,
             'annualGrossIncome' => $annualGrossIncome,
             'annualExpenses' => $annualExpenses,
@@ -253,14 +265,15 @@ class FinancialDashboard extends Component
             $labels[] = Carbon::create()->month($m)->locale('es')->translatedFormat('M');
 
             $n = Reservation::where('payment_status', 'paid')
-                ->whereMonth('paid_at', $m)
-                ->whereYear('paid_at', $year)
+                ->whereHas('spaceFlight', function($q) use ($m, $year) {
+                    $q->whereMonth('departure_date', $m)
+                      ->whereYear('departure_date', $year);
+                })
                 ->sum('total_price');
 
             $eQuery = \App\Models\Flight::where('status', '!=', 'cancelled')
                 ->whereMonth('departure_date', $m)
-                ->whereYear('departure_date', $year)
-                ->where('departure_date', '<=', now());
+                ->whereYear('departure_date', $year);
 
             $e = $eQuery->sum('operational_cost');
 

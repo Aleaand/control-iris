@@ -80,7 +80,7 @@ class ManagePassengers extends Component
             'primarylastname' => 'required|string|max:100',
             'secondarylastname' => 'nullable|string|max:100',
             'document_number' => 'required|string|max:50',
-            'document_country' => 'required|string|size:3',
+            'document_country' => 'required|string|min:2|max:10',
             'birth_date' => 'required|date|before_or_equal:-18 years',
             'user_id' => 'required|exists:users,id',
             'blood_type' => 'nullable|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',

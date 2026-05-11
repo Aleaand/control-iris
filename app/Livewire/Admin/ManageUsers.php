@@ -28,7 +28,7 @@ class ManageUsers extends Component
     public $filterManagerName = null;
 
     // Generales
-    public $name, $email, $phone, $birth_date;
+    public $name, $primarylastname, $secondarylastname, $email, $phone, $birth_date;
     public $assigned_manager_id = null;
 
     // Pasaporte (Only for clients)
@@ -77,6 +77,8 @@ class ManageUsers extends Component
     {
         $rules = [
             'name' => 'required|string|max:255',
+            'primarylastname' => 'required|string|max:255',
+            'secondarylastname' => 'nullable|string|max:255',
             'email' => [
                 'required', 'email', 'max:255',
                 Rule::unique('users')->ignore($this->userId)
@@ -104,6 +106,8 @@ class ManageUsers extends Component
     public function resetInputFields()
     {
         $this->name = '';
+        $this->primarylastname = '';
+        $this->secondarylastname = '';
         $this->email = '';
         $this->phone = '';
         $this->birth_date = '';
@@ -300,6 +304,8 @@ class ManageUsers extends Component
         if ($user) {
             $this->userId = $id;
             $this->name = $user->name;
+            $this->primarylastname = $user->primarylastname;
+            $this->secondarylastname = $user->secondarylastname;
             $this->email = $user->email;
             $this->phone = $user->phone;
             $this->birth_date = $user->birth_date ? $user->birth_date->format('Y-m-d') : null;
@@ -324,19 +330,33 @@ class ManageUsers extends Component
     public function updatedName($value)
     {
         if ($this->roleFilter === 'gestor' && !$this->isEditing) {
-            $this->generateUniqueEmail($value);
+            $this->generateUniqueEmail($value, $this->primarylastname);
         }
     }
 
-    private function generateUniqueEmail($name)
+    public function updatedPrimarylastname($value)
+    {
+        if ($this->roleFilter === 'gestor' && !$this->isEditing) {
+            $this->generateUniqueEmail($this->name, $value);
+        }
+    }
+
+    private function generateUniqueEmail($name, $lastname = '')
     {
         if (empty(trim($name))) {
             $this->email = '';
             return;
         }
 
-        // Extraer primera palabra (nombre), minúsculas y quitar acentos (usando Str::slug)
-        $baseStr = \Illuminate\Support\Str::slug(explode(' ', trim($name))[0], '');
+        // Extraer primera palabra del nombre y del apellido
+        $firstName = \Illuminate\Support\Str::slug(explode(' ', trim($name))[0], '');
+        $firstLast = \Illuminate\Support\Str::slug(explode(' ', trim($lastname))[0], '');
+
+        $baseStr = $firstName;
+        if (!empty($firstLast)) {
+            $baseStr .= '.' . $firstLast;
+        }
+
         if (empty($baseStr)) {
             $baseStr = 'user';
         }
@@ -365,6 +385,8 @@ class ManageUsers extends Component
 
         $data = [
             'name' => $this->name,
+            'primarylastname' => $this->primarylastname,
+            'secondarylastname' => $this->secondarylastname ?: null,
             'phone' => $this->phone,
             'birth_date' => $this->birth_date ?: null,
         ];

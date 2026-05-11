@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-black uppercase tracking-[0.15em]" style="color: var(--text-primary)">Mis Clientes</h1>
-            <p class="font-mono-tech text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">Cartera de clientes bajo tu gestión</p>
+            <p class="font-mono-tech text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5">Clientes bajo tu gestión</p>
         </div>
     </div>
 

@@ -12,13 +12,18 @@ class SuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\User::create([
-            'name' => 'Super',
-            'primarylastname' => 'Admin',
-            'email' => 'admin@iris.com',
-            'password' => bcrypt('SuperAdmin*'),
-            'role' => 'super_admin',
-            'birth_date' => '2000-01-01',
-        ]);
+        \App\Models\User::updateOrCreate(
+            ['email' => 'admin@iris.com'],
+            [
+                'name' => 'Super',
+                'primarylastname' => 'Admin',
+                'secondarylastname' => 'Iris',
+                'password' => \Illuminate\Support\Facades\Hash::make('SuperAdmin*'),
+                'role' => 'super_admin',
+                'birth_date' => '2000-01-01',
+                'phone' => '000000000',
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }

@@ -66,6 +66,94 @@
     --tech-hover-bg-card: rgba(0, 0, 0, 0.02);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   GESTOR THEME OVERRIDES (Emerald/Green)
+   ══════════════════════════════════════════════════════════════════════════ */
+.gestor-theme {
+    --bg-obsidian: #040d08;
+    --bg-panel: #07150f;
+    --neon-cyan: #10b981; 
+    --neon-violet: #059669;
+    --tech-card-bg: rgba(10, 26, 20, 0.7);
+    --tech-hover-bg-card: rgba(12, 35, 25, 0.9);
+}
+
+.light-mode.gestor-theme,
+.light-mode .gestor-theme {
+    --bg-obsidian: #ffffff;
+    --bg-panel: #ffffff;
+    --neon-cyan: #059669;
+    --text-primary: #062e1e;
+    --text-secondary: #2d4a3e;
+    --tech-card-bg: rgba(255, 255, 255, 0.5);
+    --border-glass: rgba(16, 185, 129, 0.15);
+}
+
+/* Crystal effect for cards in Gestor Theme */
+.gestor-theme .tech-card {
+    background: rgba(10, 26, 20, 0.45) !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+.light-mode .gestor-theme .tech-card,
+.light-mode.gestor-theme .tech-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: rgba(16, 185, 129, 0.2) !important;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Force Emerald over Blue/Cyan in Gestor Interface */
+.gestor-theme .bg-cyan-500\/10, 
+.gestor-theme .bg-blue-500\/10 { 
+    background-color: rgba(16, 185, 129, 0.12) !important; 
+}
+.gestor-theme .text-cyan-400, 
+.gestor-theme .text-blue-400,
+.gestor-theme .text-cyan-500,
+.gestor-theme .text-blue-500 { 
+    color: #10b981 !important; 
+}
+.gestor-theme .hover\:border-cyan-500\/30:hover,
+.gestor-theme .hover\:border-blue-500\/30:hover { 
+    border-color: rgba(16, 185, 129, 0.4) !important; 
+}
+.gestor-theme .bg-cyan-500\/10 { background-color: rgba(16, 185, 129, 0.15) !important; }
+
+.obsidian-bg-gestor {
+    background-color: var(--bg-obsidian);
+    background-image: 
+        radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.15) 0%, transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(5, 150, 105, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.3) 0%, transparent 100%),
+        linear-gradient(180deg, var(--bg-obsidian) 0%, var(--bg-panel) 100%);
+    background-attachment: fixed;
+    position: relative;
+    z-index: 0;
+}
+
+.light-mode .obsidian-bg-gestor,
+.light-mode.obsidian-bg-gestor {
+    background-image: none !important;
+    background-color: #ffffff !important;
+}
+
+.gestor-theme .nav-item.active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.1), inset 0 0 20px rgba(16, 185, 129, 0.05);
+    color: var(--neon-cyan) !important;
+}
+
+.gestor-theme .nav-item.active .nav-icon {
+    color: var(--neon-cyan) !important;
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+}
+
+.gestor-theme .sidebar {
+    background: var(--bg-panel);
+    border-right-color: var(--border-glass);
+}
+
 .light-mode .tech-card {
     background: var(--tech-card-bg);
     backdrop-filter: blur(8px);
@@ -955,5 +1043,306 @@ nav[role="navigation"] a:hover svg {
         width: 100%;
         justify-content: center;
         background: rgba(255,255,255,0.02);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GESTOR — INPUTS & SELECTS FIX (Modo Oscuro y Claro)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Modo oscuro: corrige texto blanco sobre fondo casi blanco */
+.gestor-theme input,
+.gestor-theme textarea,
+.gestor-theme select {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    color: #e2faf2 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.gestor-theme select option {
+    background-color: #07150f !important;
+    color: #e2faf2 !important;
+}
+
+.gestor-theme input::placeholder,
+.gestor-theme textarea::placeholder {
+    color: rgba(150, 200, 170, 0.35) !important;
+}
+
+/* Modo claro: inputs y selects con texto visible */
+.light-mode.gestor-theme input,
+.light-mode.gestor-theme textarea,
+.light-mode.gestor-theme select,
+.light-mode .gestor-theme input,
+.light-mode .gestor-theme textarea,
+.light-mode .gestor-theme select {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+    color: #062e1e !important;
+    border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.light-mode.gestor-theme select option,
+.light-mode .gestor-theme select option {
+    background-color: #f0faf5 !important;
+    color: #062e1e !important;
+}
+
+.light-mode.gestor-theme input::placeholder,
+.light-mode .gestor-theme input::placeholder,
+.light-mode.gestor-theme textarea::placeholder,
+.light-mode .gestor-theme textarea::placeholder {
+    color: rgba(6, 46, 30, 0.3) !important;
+}
+
+/* Fix: date y time pickers */
+.gestor-theme input[type="date"],
+.gestor-theme input[type="time"] {
+    color-scheme: dark;
+}
+
+.light-mode.gestor-theme input[type="date"],
+.light-mode.gestor-theme input[type="time"],
+.light-mode .gestor-theme input[type="date"],
+.light-mode .gestor-theme input[type="time"] {
+    color-scheme: light;
+    color: #062e1e !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GESTOR — MODO CLARO: TEXTOS, FONDOS Y MODALES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Textos grises en modo claro */
+.light-mode.gestor-theme .text-zinc-200,
+.light-mode.gestor-theme .text-zinc-300,
+.light-mode.gestor-theme .text-zinc-400,
+.light-mode .gestor-theme .text-zinc-200,
+.light-mode .gestor-theme .text-zinc-300,
+.light-mode .gestor-theme .text-zinc-400 {
+    color: #1e3d30 !important;
+}
+
+.light-mode.gestor-theme .text-zinc-500,
+.light-mode.gestor-theme .text-zinc-600,
+.light-mode.gestor-theme .text-zinc-700,
+.light-mode .gestor-theme .text-zinc-500,
+.light-mode .gestor-theme .text-zinc-600,
+.light-mode .gestor-theme .text-zinc-700 {
+    color: #4a7060 !important;
+}
+
+/* Fondos semitransparentes oscuros → claros */
+.light-mode.gestor-theme .bg-black\/30,
+.light-mode.gestor-theme .bg-black\/40,
+.light-mode.gestor-theme .bg-black\/20,
+.light-mode .gestor-theme .bg-black\/30,
+.light-mode .gestor-theme .bg-black\/40,
+.light-mode .gestor-theme .bg-black\/20 {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.light-mode.gestor-theme .bg-white\/2,
+.light-mode .gestor-theme .bg-white\/2 {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.light-mode.gestor-theme .bg-white\/5,
+.light-mode .gestor-theme .bg-white\/5 {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Bordes blancos → verdes sutiles */
+.light-mode.gestor-theme .border-white\/5,
+.light-mode .gestor-theme .border-white\/5,
+.light-mode.gestor-theme .border-white\/10,
+.light-mode .gestor-theme .border-white\/10 {
+    border-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Hovers */
+.light-mode.gestor-theme .hover\:bg-white\/5:hover,
+.light-mode .gestor-theme .hover\:bg-white\/5:hover,
+.light-mode.gestor-theme .hover\:bg-white\/10:hover,
+.light-mode .gestor-theme .hover\:bg-white\/10:hover {
+    background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+/* Sidebar en modo claro */
+.light-mode .gestor-theme .sidebar,
+.light-mode.gestor-theme .sidebar {
+    background: #ffffff !important;
+    border-right-color: rgba(16, 185, 129, 0.15) !important;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+.light-mode.gestor-theme .user-dropdown-panel,
+.light-mode .gestor-theme .user-dropdown-panel {
+    background: #ffffff !important;
+    border-color: rgba(16, 185, 129, 0.15) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Modales en modo claro: fondo inline oscuro → blanco */
+.light-mode.gestor-theme [class*="fixed inset-0"] .relative.bg-\[\#050505\],
+.light-mode.gestor-theme [class*="fixed inset-0"] .relative.bg-\[\#0a0a0a\],
+.light-mode .gestor-theme [class*="fixed inset-0"] .relative.bg-\[\#050505\],
+.light-mode .gestor-theme [class*="fixed inset-0"] .relative.bg-\[\#0a0a0a\] {
+    background-color: #ffffff !important;
+    border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Kanban columns en modo claro */
+.light-mode.gestor-theme .rounded-3xl.bg-black\/40,
+.light-mode .gestor-theme .rounded-3xl.bg-black\/40 {
+    background-color: rgba(240, 250, 245, 0.95) !important;
+    border-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Nav hover colors en modo claro */
+.light-mode.gestor-theme .hover-cyan:hover,
+.light-mode .gestor-theme .hover-cyan:hover {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: #059669 !important;
+}
+
+.light-mode.gestor-theme .hover-orange:hover,
+.light-mode .gestor-theme .hover-orange:hover {
+    background: rgba(249, 115, 22, 0.1) !important;
+    color: #ea580c !important;
+}
+
+/* Modo oscuro: hover-cyan y hover-orange correctos */
+.gestor-theme .hover-cyan:hover {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #10b981 !important;
+}
+
+.gestor-theme .hover-orange:hover {
+    background: rgba(249, 115, 22, 0.15) !important;
+    color: #f97316 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GESTOR — RESPONSIVE: MOBILE (< 768px) Y TABLET (768-1024px)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    /* Padding reducido en mobile */
+    .gestor-theme .p-6.space-y-6,
+    .gestor-theme .p-6.md\:p-10 {
+        padding: 1rem !important;
+    }
+
+    /* Kanban: scroll horizontal táctil con snap */
+    .gestor-theme .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        padding-bottom: 1rem;
+    }
+
+    /* Columnas kanban: anchura adaptada a pantalla */
+    .gestor-theme .flex-shrink-0.w-\[320px\],
+    .gestor-theme .flex-shrink-0.w-\[350px\] {
+        width: 82vw !important;
+        scroll-snap-align: start;
+    }
+
+    /* Modales: sheet desde abajo en mobile */
+    .gestor-theme .fixed.inset-0.z-\[100\] > div.relative,
+    .gestor-theme .fixed.inset-0.z-\[120\] > div.relative {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        border-radius: 2rem 2rem 0 0 !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        max-height: 92vh;
+        overflow-y: auto;
+    }
+
+    /* Overlay en modales mobile */
+    .gestor-theme .fixed.inset-0 > .absolute.inset-0 {
+        backdrop-filter: blur(4px);
+    }
+
+    /* Calendario: scroll horizontal en mobile */
+    .gestor-theme .tech-card .grid.grid-cols-7 {
+        min-width: 560px;
+    }
+
+    .gestor-theme [class*="rounded-\[2rem\]"],
+    .gestor-theme [class*="rounded-3xl"] {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Tabs: sin wrap, scroll horizontal */
+    .gestor-theme .flex.border-b {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        scrollbar-width: none;
+    }
+
+    .gestor-theme .flex.border-b::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Botones de ordenación: wrapping */
+    .gestor-theme .flex.items-center.gap-1 {
+        flex-wrap: wrap;
+    }
+
+    /* Grids de estadísticas: 1 columna en mobile */
+    .gestor-theme .grid.grid-cols-2,
+    .gestor-theme .grid.grid-cols-3 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .gestor-theme .grid.grid-cols-4 {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    /* Perfil: stack en mobile */
+    .gestor-theme .lg\:grid-cols-12 {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Header: stack vertical */
+    .gestor-theme .md\:flex-row {
+        flex-direction: column !important;
+    }
+
+    /* Texto en modales: reducir padding */
+    .gestor-theme .p-10,
+    .gestor-theme .p-12 {
+        padding: 1.5rem !important;
+    }
+
+    .gestor-theme .p-8 {
+        padding: 1.25rem !important;
+    }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1024px) {
+    /* Kanban: columnas más estrechas */
+    .gestor-theme .flex-shrink-0.w-\[350px\],
+    .gestor-theme .flex-shrink-0.w-\[320px\] {
+        width: 260px !important;
+    }
+
+    /* Modales: max 90vw */
+    .gestor-theme .max-w-2xl,
+    .gestor-theme .max-w-lg {
+        max-width: 88vw !important;
+    }
+
+    /* Perfil: 1 columna en tablet */
+    .gestor-theme .lg\:col-span-7,
+    .gestor-theme .lg\:col-span-5 {
+        grid-column: span 12 !important;
     }
 }

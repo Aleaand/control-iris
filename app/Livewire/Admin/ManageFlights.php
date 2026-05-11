@@ -140,7 +140,7 @@ class ManageFlights extends Component
         'arrival_date' => 'required|date|after_or_equal:departure_date',
         'base_price' => 'required|numeric|min:0',
         'booked_passengers' => 'required|integer|min:0',
-        'au_distance' => 'required|integer|min:0',
+        'au_distance' => 'required|numeric|min:0',
         'status' => 'required|in:scheduled,in_orbit,landed,cancelled',
         'mission_speed_au' => 'required|numeric|min:0.0001',
         'crew_hourly_rate' => 'required|numeric|min:0',
@@ -168,60 +168,77 @@ class ManageFlights extends Component
 
     public function updatedDestinationId()
     {
+        $this->refreshPlanetaryFees();
+        $this->user_modified_base_price = false;
+        $this->user_modified_return_base_price = false;
+        $this->recalculateAll();
+    }
+
+    public function updatedOriginId()
+    {
+        $this->refreshPlanetaryFees();
+        $this->recalculateAll();
+    }
+
+    private function refreshPlanetaryFees()
+    {
         if ($this->destination_id) {
             $destination = Destination::find($this->destination_id);
             if ($destination) {
+                // Si el destino NO es la Tierra, usamos sus tasas planetarias
                 $earth = Destination::where('name', 'Tierra')->first();
                 $earthId = $earth ? $earth->id : null;
 
                 if ($destination->id != $earthId) {
-                    $this->au_distance = (int) $destination->getEffectiveDistanceAu();
+                    $this->au_distance = (float) $destination->getEffectiveDistanceAu();
                     $this->launch_cost_planet = (float) $destination->launch_fee;
                     $this->landing_cost_planet = (float) $destination->landing_fee;
-                    if ($earth) {
-                        $this->launch_cost_earth = (float) $earth->launch_fee;
-                        $this->landing_cost_earth = (float) $earth->landing_fee;
-                    }
-                } elseif ($this->starship_id) {
-                    $starship = Starship::find($this->starship_id);
-                    if ($starship) {
-                        $lastFlight = $starship->flights()
-                            ->whereIn('status', ['landed', 'in_orbit', 'scheduled'])
-                            ->latest('arrival_date')->first();
-                        if ($lastFlight && $lastFlight->destination) {
-                            $this->au_distance = (int) $lastFlight->destination->getEffectiveDistanceAu();
+                } else {
+                    $this->landing_cost_earth = (float) $destination->landing_fee;
+                    if ($this->origin_id && $this->origin_id != $earthId) {
+                        $origin = Destination::find($this->origin_id);
+                        if ($origin) {
+                            $this->au_distance = (float) $origin->getEffectiveDistanceAu();
+                            $this->launch_cost_planet = (float) $origin->launch_fee;
                         }
                     }
-                } else {
-                    $this->au_distance = (int) $destination->getEffectiveDistanceAu();
                 }
-                $this->return_au_distance = $this->au_distance;
             }
-        } else {
-            $this->au_distance = 0;
-            $this->return_au_distance = 0;
         }
 
-        $this->user_modified_base_price = false;
-        $this->user_modified_return_base_price = false;
+        if ($this->origin_id) {
+            $origin = Destination::find($this->origin_id);
+            if ($origin) {
+                $earth = Destination::where('name', 'Tierra')->first();
+                $earthId = $earth ? $earth->id : null;
 
-        $this->recalculateAll();
+                if ($origin->id == $earthId) {
+                    $this->launch_cost_earth = (float) $origin->launch_fee;
+                    $this->landing_cost_earth = (float) $origin->landing_fee;
+                } else {
+                    $this->launch_cost_planet = (float) $origin->launch_fee;
+                    $this->landing_cost_planet = (float) $origin->landing_fee;
+                }
+            }
+        }
+
+        $this->return_au_distance = $this->au_distance;
     }
 
     public function updatedAuDistance()
     {
-        $this->au_distance = (int) $this->au_distance;
+        $this->au_distance = (float) $this->au_distance;
         $this->arrival_date = null;
         $this->user_modified_arrival_date = false;
         if (!$this->showReturnForm) {
-            $this->return_au_distance = (int) $this->au_distance;
+            $this->return_au_distance = (float) $this->au_distance;
         }
         $this->recalculateAll();
     }
 
     public function updatedReturnAuDistance()
     {
-        $this->return_au_distance = (int) $this->return_au_distance;
+        $this->return_au_distance = (float) $this->return_au_distance;
         $this->recalculateAll();
     }
 
@@ -338,24 +355,8 @@ class ManageFlights extends Component
             }
         }
 
+        $this->refreshPlanetaryFees();
         $this->recalculateAll();
-        // Re-apply destination fees if a destination is already selected
-        if ($this->destination_id) {
-            $destination = Destination::find($this->destination_id);
-            if ($destination) {
-                $earth = Destination::where('name', 'Tierra')->first();
-                $earthId = $earth ? $earth->id : null;
-                if ($destination->id != $earthId) {
-                    $this->launch_cost_planet = (float) $destination->launch_fee;
-                    $this->landing_cost_planet = (float) $destination->landing_fee;
-                    if ($earth) {
-                        $this->launch_cost_earth = (float) $earth->launch_fee;
-                        $this->landing_cost_earth = (float) $earth->landing_fee;
-                    }
-                }
-            }
-            $this->recalculateAll();
-        }
     }
 
     // Watchers para recalcular al editar parámetros de misión
@@ -466,30 +467,33 @@ class ManageFlights extends Component
 
         $this->flight_hours_outbound = 0;
         if ($this->au_distance > 0 && $this->mission_speed_au > 0) {
-            $this->flight_hours_outbound = ceil($this->au_distance * $this->mission_speed_au);
-        }
+            // T = D * V (en horas). Multiplicamos por 60 para tener minutos exactos.
+            $totalMinutes = (float) $this->au_distance * (float) $this->mission_speed_au * 60;
+            $this->flight_hours_outbound = ceil($totalMinutes / 60); // Mantener para compatibilidad de UI
 
-        if ($this->flight_hours_outbound > 0 && $this->departure_date) {
-            try {
-                $this->suggested_arrival_date = Carbon::parse($this->departure_date)
-                    ->addHours($this->flight_hours_outbound)
-                    ->format('Y-m-d\TH:i');
+            if ($this->departure_date) {
+                try {
+                    $this->suggested_arrival_date = Carbon::parse($this->departure_date)
+                        ->addMinutes(ceil($totalMinutes))
+                        ->format('Y-m-d\TH:i');
 
-                if (!$this->user_modified_arrival_date) {
-                    $this->arrival_date = $this->suggested_arrival_date;
+                    if (!$this->user_modified_arrival_date) {
+                        $this->arrival_date = $this->suggested_arrival_date;
+                    }
+                } catch (\Exception $e) {
                 }
-            } catch (\Exception $e) {
             }
         }
 
         $this->flight_hours_return = 0;
         if ($this->showReturnForm && $this->return_au_distance > 0 && $this->mission_speed_au > 0) {
-            $this->flight_hours_return = ceil($this->return_au_distance * $this->mission_speed_au);
+            $totalMinutesReturn = (float) $this->return_au_distance * (float) $this->mission_speed_au * 60;
+            $this->flight_hours_return = ceil($totalMinutesReturn / 60);
 
-            if ($this->flight_hours_return > 0 && $this->return_departure_date) {
+            if ($this->return_departure_date) {
                 try {
                     $sugg = Carbon::parse($this->return_departure_date)
-                        ->addHours($this->flight_hours_return)
+                        ->addMinutes(ceil($totalMinutesReturn))
                         ->format('Y-m-d\TH:i');
 
                     if (!$this->user_modified_return_arrival_date) {
@@ -529,8 +533,6 @@ class ManageFlights extends Component
                     $this->waiting_days = 1;
                 }
             } elseif (!$this->showReturnForm && !$this->isReturnFlight) {
-                // Sin vuelo de vuelta definido: 7 días de espera + alerta RRHH
-                // (Solo si NO es un vuelo de retorno per se)
                 $this->waiting_days = 7;
                 $this->rrhh_alert_needed = true;
             }
@@ -543,21 +545,28 @@ class ManageFlights extends Component
         $this->outbound_total_cost = round(
             (float) $this->launch_cost_earth +
             (float) $this->landing_cost_planet +
+            (float) $this->launch_cost_planet +
+            (float) $this->landing_cost_earth +
             $this->crew_cost_outbound +
             $this->ship_outbound_cost,
             2
         );
 
-        // Tarifa base calculado el 70% ocupacio
+        // Tarifa sugerida (70% ocupación)
         $this->suggested_price = round($this->outbound_total_cost / (0.49 * $effCap), 2);
         if (!$this->user_modified_base_price || !$this->base_price) {
             $this->base_price = $this->suggested_price;
         }
 
+        // Precios Nova / Supernova e Ingresos de IDA
+        $novaMult = (float) ($this->nova_price_multiplier ?? 1.25);
+        $supernovaMult = (float) ($this->supernova_price_multiplier ?? 2.0);
         $this->nova_price = round($this->base_price * $novaMult, 2);
         $this->supernova_price = round($this->base_price * $supernovaMult, 2);
-        $this->revenue_outbound = round($effCap * 0.80 * $this->base_price, 2); // Proyeccion 80%
+        $this->revenue_outbound = round($effCap * 0.80 * $this->base_price, 2);
 
+        // Cálculo de Costes de VUELTA (Return)
+        $this->return_total_cost = 0;
         if ($this->showReturnForm) {
             $this->ship_return_cost = round($this->return_au_distance * $this->shipCostPerAu, 2);
             $this->crew_cost_return = round($crewCount * $this->crew_hourly_rate * $this->flight_hours_return, 2);
@@ -565,6 +574,8 @@ class ManageFlights extends Component
             $this->return_total_cost = round(
                 (float) $this->launch_cost_planet +
                 (float) $this->landing_cost_earth +
+                (float) $this->launch_cost_earth +
+                (float) $this->landing_cost_planet +
                 $this->crew_cost_return +
                 $this->crew_cost_waiting +
                 $this->ship_return_cost,
@@ -1053,8 +1064,8 @@ class ManageFlights extends Component
             'crew_hourly_rate' => $this->crew_hourly_rate,
             'crew_daily_rate' => $this->crew_daily_rate,
             'launch_cost_earth' => $this->launch_cost_earth,
-            'landing_cost_earth' => 0,
-            'launch_cost_planet' => 0,
+            'landing_cost_earth' => $this->landing_cost_earth,
+            'launch_cost_planet' => $this->launch_cost_planet,
             'landing_cost_planet' => $this->landing_cost_planet,
             'return_departure_date' => null,
             'return_base_price' => null,
@@ -1139,10 +1150,10 @@ class ManageFlights extends Component
                     'mission_speed_au' => $this->mission_speed_au,
                     'crew_hourly_rate' => $this->crew_hourly_rate,
                     'crew_daily_rate' => $this->crew_daily_rate,
-                    'launch_cost_earth' => 0,
+                    'launch_cost_earth' => $this->launch_cost_earth,
                     'landing_cost_earth' => $this->landing_cost_earth,
                     'launch_cost_planet' => $this->launch_cost_planet,
-                    'landing_cost_planet' => 0,
+                    'landing_cost_planet' => $this->landing_cost_planet,
                     'return_departure_date' => null,
                     'return_base_price' => null,
                     'mission_profitability' => 0,
@@ -1183,7 +1194,9 @@ class ManageFlights extends Component
             session()->flash('message', 'Vuelo ' . $flight->flight_code . ' actualizado exitosamente.');
         } else {
             $flight = Flight::create($data);
-            $this->generateExpensesForFlight($flight, $this->launch_cost_earth, $this->landing_cost_planet, $this->crew_cost_outbound, $this->ship_outbound_cost, 0);
+            $launchTotal = (float) $this->launch_cost_earth + (float) $this->launch_cost_planet;
+            $landingTotal = (float) $this->landing_cost_planet + (float) $this->landing_cost_earth;
+            $this->generateExpensesForFlight($flight, $launchTotal, $landingTotal, $this->crew_cost_outbound, $this->ship_outbound_cost, 0);
 
             if ($this->showReturnForm && $this->return_departure_date) {
                 $returnArrDate = $this->return_arrival_date ?: Carbon::parse($this->return_departure_date)->addHours($this->flight_hours_return)->format('Y-m-d\TH:i');
@@ -1204,16 +1217,18 @@ class ManageFlights extends Component
                     'mission_speed_au' => $this->mission_speed_au,
                     'crew_hourly_rate' => $this->crew_hourly_rate,
                     'crew_daily_rate' => $this->crew_daily_rate,
-                    'launch_cost_earth' => 0,
+                    'launch_cost_earth' => $this->launch_cost_earth,
                     'landing_cost_earth' => $this->landing_cost_earth,
                     'launch_cost_planet' => $this->launch_cost_planet,
-                    'landing_cost_planet' => 0,
+                    'landing_cost_planet' => $this->landing_cost_planet,
                     'return_departure_date' => null,
                     'return_base_price' => null,
                     'mission_profitability' => 0,
                 ]);
 
-                $this->generateExpensesForFlight($returnFlight, $this->launch_cost_planet, $this->landing_cost_earth, $this->crew_cost_return, $this->ship_return_cost, $this->crew_cost_waiting);
+                $launchTotalRet = (float) $this->launch_cost_planet + (float) $this->launch_cost_earth;
+                $landingTotalRet = (float) $this->landing_cost_earth + (float) $this->landing_cost_planet;
+                $this->generateExpensesForFlight($returnFlight, $launchTotalRet, $landingTotalRet, $this->crew_cost_return, $this->ship_return_cost, $this->crew_cost_waiting);
             }
 
             session()->flash('message', 'Nuevo Vuelo programado con éxito.');

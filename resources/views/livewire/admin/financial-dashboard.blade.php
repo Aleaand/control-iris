@@ -152,21 +152,31 @@
             <div class="flex flex-col gap-4">
                 <div class="bg-[var(--neon-cyan)]/5 border border-[var(--neon-cyan)] rounded-[15px] p-5 shadow-lg">
                     <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-cyan)] mb-1 opacity-80">
-                        Ingresos Pagados</p>
+                        Ingresos Netos</p>
                     <span class="text-3xl font-bold text-[var(--neon-cyan)]">{{ number_format($netIncome, 0, ',', '.') }}
                         €</span>
                     <div class="mt-4 pt-4 border-t border-[var(--border-glass)] flex justify-between">
                         <div>
-                            <p class="text-[9px] uppercase text-[var(--text-secondary)] font-bold">Media de Ingresos</p>
+                            <p class="text-[9px] uppercase text-[var(--text-secondary)] font-bold">Ticket Medio</p>
                             <p class="text-sm font-mono text-[var(--text-primary)]">
                                 {{ number_format($avgTicket, 0, ',', '.') }} €</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-[9px] uppercase text-[var(--text-secondary)] font-bold">Total Descuentos</p>
-                            <p class="text-sm font-mono text-[var(--neon-rose)]">
+                            <p class="text-[9px] uppercase text-[var(--text-secondary)] font-bold">Descuentos</p>
+                            <p class="text-sm font-mono text-amber-400">
                                 {{ number_format($totalDiscounts, 0, ',', '.') }} €</p>
                         </div>
                     </div>
+                </div>
+
+                <div class="bg-[var(--neon-rose)]/5 border border-[var(--neon-rose)]/30 rounded-[15px] p-5 shadow-lg">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--neon-rose)] mb-1 opacity-80">
+                        Reembolsos Ejecutados</p>
+                    <span class="text-3xl font-bold text-[var(--neon-rose)]">{{ number_format($totalRefunds, 0, ',', '.') }}
+                        €</span>
+                    <p class="text-[9px] text-[var(--text-secondary)] mt-2 uppercase tracking-widest font-bold">
+                        Restado automáticamente de la liquidez total
+                    </p>
                 </div>
             </div>
 
@@ -258,6 +268,9 @@
                                     @if($tx->payment_status === 'paid')
                                         <span
                                             class="bg-[var(--neon-emerald)]/10 text-[var(--neon-emerald)] border border-[var(--neon-emerald)] px-2 py-0.5 rounded-[5px] text-[9px] uppercase tracking-widest font-black">Pagado</span>
+                                    @elseif($tx->payment_status === 'refunded')
+                                        <span
+                                            class="bg-[var(--neon-rose)]/10 text-[var(--neon-rose)] border border-[var(--neon-rose)] px-2 py-0.5 rounded-[5px] text-[9px] uppercase tracking-widest font-black">Reembolsado</span>
                                     @else
                                         <span
                                             class="bg-[var(--neon-amber)]/10 text-[var(--neon-amber)] border border-[var(--neon-amber)] px-2 py-0.5 rounded-[5px] text-[9px] uppercase tracking-widest font-black flex items-center gap-1 justify-center">
@@ -266,18 +279,28 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    @if($tx->stripe_receipt_url)
-                                        <a href="{{ $tx->stripe_receipt_url }}" target="_blank"
-                                            class="inline-flex items-center gap-1 text-[9px] uppercase font-bold text-[var(--neon-cyan)] hover:text-[var(--text-primary)] transition-colors bg-[var(--neon-cyan)]/10 px-2 py-1 rounded-[5px] border border-[var(--neon-cyan)] shadow-sm">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                            </svg>
-                                            Ticket
-                                        </a>
-                                    @else
-                                        <span class="text-[9px] text-[var(--text-secondary)] italic opacity-50">No disp.</span>
-                                    @endif
+                                    <div class="flex flex-col gap-1 items-end">
+                                        @if($tx->stripe_receipt_url)
+                                            <a href="{{ $tx->stripe_receipt_url }}" target="_blank"
+                                                class="inline-flex items-center gap-1 text-[8px] uppercase font-bold text-[var(--neon-cyan)] hover:text-[var(--text-primary)] transition-colors bg-[var(--neon-cyan)]/5 px-1.5 py-0.5 rounded border border-[var(--neon-cyan)]/20">
+                                                Pago Principal
+                                            </a>
+                                        @endif
+                                        
+                                        @php $receipts = is_array($tx->stripe_receipts) ? $tx->stripe_receipts : json_decode($tx->stripe_receipts ?? '[]', true); @endphp
+                                        @if($receipts)
+                                            @foreach($receipts as $receipt)
+                                                <a href="{{ $receipt['url'] ?? '#' }}" target="_blank"
+                                                    class="inline-flex items-center gap-1 text-[8px] uppercase font-bold {{ ($receipt['type'] ?? '') === 'refund' ? 'text-[var(--neon-rose)] border-[var(--neon-rose)]/20 bg-[var(--neon-rose)]/5' : 'text-[var(--neon-emerald)] border-[var(--neon-emerald)]/20 bg-[var(--neon-emerald)]/5' }} px-1.5 py-0.5 rounded border transition-colors hover:opacity-80">
+                                                    {{ $receipt['description'] ?? 'Recibo' }}
+                                                </a>
+                                            @endforeach
+                                        @endif
+
+                                        @if(!$tx->stripe_receipt_url && !$receipts)
+                                            <span class="text-[9px] text-[var(--text-secondary)] italic opacity-50">No disp.</span>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -360,8 +383,7 @@
                             <th class="px-4 py-3 font-bold">Vuelo / Nave</th>
                             <th class="px-4 py-3 font-bold">Fecha / Destino</th>
                             <th class="px-4 py-3 font-bold">Estado</th>
-                            <th class="px-4 py-3 font-bold">Coste Total</th>
-                            <th class="px-4 py-3 font-bold text-right">Auditoría</th>
+                            <th class="px-4 py-3 font-bold text-right">Coste Total</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--border-glass)]">
@@ -395,118 +417,13 @@
                                         {{ $f->status }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-[var(--neon-rose)] font-black text-sm">
+                                <td class="px-4 py-3 text-[var(--neon-rose)] font-black text-sm text-right">
                                     {{ number_format($f->operational_cost, 2, ',', '.') }} €
                                 </td>
-                                <td class="px-4 py-3 text-right">
-                                    <button @click="expanded = !expanded"
-                                        class="px-3 py-1.5 bg-[var(--tech-input-bg)] border border-[var(--border-glass)] rounded-[8px] text-[9px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all uppercase tracking-widest shadow-sm">
-                                        Detalles
-                                    </button>
-                                        
-                                    {{-- Advanced Breakdown Modal --}}
-                                    <template x-if="expanded">
-                                        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-obsidian)]/80 backdrop-blur-md "
-                                            @click.self="expanded = false">
-                                            <div
-                                                class="bg-[var(--bg-panel)] border border-[var(--border-glass)] w-full max-w-xl rounded-[25px] shadow-2xl overflow-hidden animate-slide-in text-left">
-                                                <div
-                                                    class="px-8 py-5 border-b border-[var(--border-glass)] flex justify-between items-center bg-[var(--tech-input-bg)]">
-                                                    <div>
-                                                        <h4 class="text-xs font-black uppercase tracking-[0.3em] text-[var(--neon-rose)]">
-                                                            Misión: {{ $f->flight_code }}</h4>
-                                                        <p class="text-[9px] text-[var(--text-secondary)] uppercase mt-0.5">Auditoría
-                                                            Detallada de Costes Operativos</p>
-                                                    </div>
-                                                    <button @click="expanded = false"
-                                                        class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-2 transition-colors">
-                                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                                                                d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                                <div class="p-8 space-y-6">
-                                                    {{-- Logistic Fees --}}
-                                                    <div class="grid grid-cols-2 gap-4">
-                                                        <div
-                                                            class="p-4 bg-black/20 rounded-xl border border-[var(--border-glass)]">
-                                                            <p class="text-[8px] font-black uppercase text-[var(--text-secondary)] mb-1">
-                                                                Tasas de Despegue (Tierra)</p>
-                                                            <p class="text-md font-mono text-[var(--text-primary)]">
-                                                                €{{ number_format($f->launch_cost_earth, 2, ',', '.') }}</p>
-                                                        </div>
-                                                        <div
-                                                            class="p-4 bg-black/20 rounded-xl border border-[var(--border-glass)]">
-                                                            <p class="text-[8px] font-black uppercase text-[var(--text-secondary)] mb-1">
-                                                                Tasas de Aterrizaje (Tierra)</p>
-                                                            <p class="text-md font-mono text-[var(--text-primary)]">
-                                                                €{{ number_format($f->landing_cost_earth, 2, ',', '.') }}</p>
-                                                        </div>
-                                                        <div
-                                                            class="p-4 bg-black/20 rounded-xl border border-[var(--border-glass)]">
-                                                            <p class="text-[8px] font-black uppercase text-[var(--text-secondary)] mb-1">
-                                                                Tasas de Lanzamiento ({{ optional($f->destination)->name }})</p>
-                                                            <p class="text-md font-mono text-[var(--text-primary)]">
-                                                                €{{ number_format($f->launch_cost_planet, 2, ',', '.') }}</p>
-                                                        </div>
-                                                        <div
-                                                            class="p-4 bg-black/20 rounded-xl border border-[var(--border-glass)]">
-                                                            <p class="text-[8px] font-black uppercase text-[var(--text-secondary)] mb-1">
-                                                                Tasas de Aterrizaje ({{ optional($f->destination)->name }})</p>
-                                                            <p class="text-md font-mono text-[var(--text-primary)]">
-                                                                €{{ number_format($f->landing_cost_planet, 2, ',', '.') }}</p>
-                                                        </div>
-                                                    </div>
-
-                                                    {{-- Mission Stats --}}
-                                                    <div
-                                                        class="p-5 bg-black/10 rounded-xl border border-[var(--border-glass)] space-y-3">
-                                                        <div class="flex justify-between items-center text-[10px]">
-                                                            <span class="text-[var(--text-secondary)] uppercase font-bold text-[8px]">Precio
-                                                                por AU (Consolidado)</span>
-                                                            <span class="text-[var(--text-primary)] font-mono italic">€{{ number_format($f->au_distance > 0 ? ($f->operational_cost / $f->au_distance) : 0, 4, ',', '.') }}
-                                                                / AU</span>
-                                                        </div>
-                                                        <div class="h-[1px] bg-[var(--border-glass)]"></div>
-                                                        <div class="flex justify-between items-center text-[10px]">
-                                                            <span class="text-[var(--text-secondary)] uppercase font-bold text-[8px]">Costes
-                                                                de Personal / Empleados</span>
-                                                            <span class="text-[var(--text-primary)] font-mono">€{{ number_format($f->crew_daily_rate, 2, ',', '.') }} x día</span>
-                                                        </div>
-                                                        <div class="h-[1px] bg-[var(--border-glass)]"></div>
-                                                        <div class="flex justify-between items-center text-[10px]">
-                                                            <span class="text-[var(--text-secondary)] uppercase font-bold text-[8px]">Distancia de
-                                                                Misión</span>
-                                                            <span class="text-[var(--text-primary)] font-mono">{{ number_format($f->au_distance, 2, ',', '.') }}
-                                                                AU</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div
-                                                        class="flex justify-between items-end pt-4 border-t border-[var(--border-glass)]">
-                                                        <div>
-                                                            <p class="text-[9px] font-black uppercase text-[var(--text-secondary)]">
-                                                                Referencia de Fecha</p>
-                                                            <p class="text-xs text-[var(--text-secondary)]">
-                                                                {{ $f->departure_date->format('d/m/Y H:i') }}</p>
-                                                        </div>
-                                                        <div class="text-right">
-                                                            <p class="text-[10px] font-black uppercase text-[var(--text-secondary)]">
-                                                                Gasto Total de Misión</p>
-                                                            <p class="text-3xl font-black text-[var(--neon-rose)]">
-                                                                €{{ number_format($f->operational_cost, 2, ',', '.') }}</p>
-                                                        </div>
-                                                    </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </td>
-                                </tr>
+                            </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="p-20 text-center text-[var(--text-secondary)] opacity-60">
+                                <td colspan="4" class="p-20 text-center text-[var(--text-secondary)] opacity-60">
                                     <p class="text-sm font-black uppercase tracking-widest">Sin registros operacionales</p>
                                     <p class="text-[10px] opacity-50 mt-1">No se detectaron misiones activas en este periodo.</p>
                                 </td>

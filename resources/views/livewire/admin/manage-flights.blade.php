@@ -399,8 +399,7 @@
                                     </div>
                                 </div>
                             </label>
-                            <input type="number" step="1" min="1" required
-                                onkeydown="if(['.', ',', 'e', 'E'].includes(event.key)) event.preventDefault();"
+                            <input type="number" step="any" min="0.01" required
                                 wire:model.live="au_distance"
                                 class="tech-input w-full px-3 py-2.5 font-mono focus:outline-none transition-colors text-sm rounded-[10px] h-[42px] {{ $isEditing ? 'border-[var(--neon-amber)]' : 'text-[var(--neon-cyan)]' }}">
                             @error('au_distance') <span
@@ -485,6 +484,52 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div
+                                class="border border-[var(--border-glass)] rounded-[10px] p-3 space-y-3 bg-[var(--bg-panel)]/50">
+                                <p
+                                    class="text-[9px] font-bold text-[var(--neon-amber)]/70 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                                    Tasas de Puerto Espacial (Ida)
+                                </p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label
+                                            class="block text-[9px] font-bold text-[var(--text-secondary)] mb-1 uppercase tracking-widest pl-1">Despegue (€)</label>
+                                        <input type="number" step="1" min="0" wire:model.live="launch_cost_earth"
+                                            class="tech-input w-full px-2 py-1.5 font-mono focus:outline-none text-xs rounded-[8px]">
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-[9px] font-bold text-[var(--text-secondary)] mb-1 uppercase tracking-widest pl-1">Aterrizaje (€)</label>
+                                        <input type="number" step="1" min="0" wire:model.live="landing_cost_planet"
+                                            class="tech-input w-full px-2 py-1.5 font-mono focus:outline-none text-xs rounded-[8px]">
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if($showReturnForm)
+                            <div
+                                class="border border-[var(--border-glass)] rounded-[10px] p-3 space-y-3 bg-[var(--bg-panel)]/50">
+                                <p
+                                    class="text-[9px] font-bold text-[var(--neon-violet)]/70 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                                    Tasas de Puerto Espacial (Vuelta)
+                                </p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label
+                                            class="block text-[9px] font-bold text-[var(--text-secondary)] mb-1 uppercase tracking-widest pl-1">Despegue (€)</label>
+                                        <input type="number" step="1" min="0" wire:model.live="launch_cost_planet"
+                                            class="tech-input w-full px-2 py-1.5 font-mono focus:outline-none text-xs rounded-[8px]">
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-[9px] font-bold text-[var(--text-secondary)] mb-1 uppercase tracking-widest pl-1">Aterrizaje (€)</label>
+                                        <input type="number" step="1" min="0" wire:model.live="landing_cost_earth"
+                                            class="tech-input w-full px-2 py-1.5 font-mono focus:outline-none text-xs rounded-[8px]">
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
                         @endif
 
                         <div>
@@ -571,8 +616,7 @@
                                                 <label
                                                     class="block text-[9px] font-bold text-[var(--neon-violet)]/70 mb-1 uppercase tracking-widest pl-1">Distancia
                                                     (AU) <span class="text-rose-500">*</span></label>
-                                                <input type="number" step="1" required
-                                                    onkeydown="if(['.', ',', 'e', 'E'].includes(event.key)) event.preventDefault();"
+                                                <input type="number" step="any" min="0.01" required
                                                     wire:model.live="return_au_distance"
                                                     class="tech-input w-full px-2 py-1.5 font-mono h-[36px] focus:outline-none text-xs rounded-[8px]"
                                                     placeholder="0">

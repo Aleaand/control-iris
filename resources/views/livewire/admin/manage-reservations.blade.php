@@ -599,7 +599,12 @@
                                                         </button>
                                                         <div x-show="open" x-transition
                                                             class="p-4 space-y-4 border-t border-purple-500/20">
-                                                            <div class="grid grid-cols-2 gap-2">
+                                                            <div class="grid grid-cols-3 gap-2">
+                                                                <button type="button"
+                                                                    wire:click="updatePassengerService({{ $pIdx }}, 'seat_type', '')"
+                                                                    class="py-2 text-[8px] font-black uppercase rounded-lg border transition-all {{ !$pData['seat_type'] ? 'bg-zinc-600 text-white border-zinc-500' : 'bg-[var(--tech-input-bg)] border-[var(--border-glass)] text-[var(--text-secondary)]' }}">
+                                                                    SIN VUELO
+                                                                </button>
                                                                 @foreach(['nova' => 'NOVA', 'supernova' => 'SUPERNOVA'] as $val => $lbl)
                                                                     <button type="button"
                                                                         wire:click="updatePassengerService({{ $pIdx }}, 'seat_type', '{{ $val }}')"
@@ -619,6 +624,20 @@
                                                                             class="text-[9px] font-black text-[var(--text-secondary)] uppercase">{{ $lbl }}</span>
                                                                     </label>
                                                                 @endforeach
+                                                            </div>
+
+                                                            {{-- Terrestrial Flight Selection Group --}}
+                                                            <div class="space-y-2">
+                                                                <label class="text-[8px] font-black text-pink-500 uppercase tracking-widest pl-1">Vuelo Terrestre</label>
+                                                                <select wire:change="selectPassengerTerrestrialFlight({{ $pIdx }}, $event.target.value)"
+                                                                    class="tech-input w-full px-3 py-2 text-[10px] rounded-lg bg-black">
+                                                                    <option value="">SIN VUELO TERRESTRE</option>
+                                                                    @foreach($terrestrialFlights as $tf)
+                                                                        <option value="{{ $tf->id }}" {{ ($pData['terrestrial_flight_id'] ?? null) == $tf->id ? 'selected' : '' }}>
+                                                                            {{ $tf->originLocation?->name ?? '?' }} → {{ $tf->destinationLocation?->name ?? '?' }} ({{ number_format($tf->price, 0, ',', '.') }}€)
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
                                                             </div>
 
                                                             {{-- Hotel Selection Individual --}}
@@ -646,6 +665,57 @@
                                                                     </div>
                                                                 @endif
                                                             </div>
+
+                                                            @if($hasReturnFlight)
+                                                                <div class="pt-4 border-t border-purple-500/20 space-y-3">
+                                                                    <div class="text-[8px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                                                                        Logística Regreso
+                                                                    </div>
+
+                                                                    <div class="space-y-2">
+                                                                        <label class="text-[7px] font-black text-purple-300 uppercase tracking-widest pl-1">Vuelo Terrestre Regreso</label>
+                                                                        <select wire:change="selectPassengerReturnTerrestrialFlight({{ $pIdx }}, $event.target.value)"
+                                                                            class="tech-input w-full px-3 py-2 text-[10px] rounded-lg bg-black border-purple-500/30">
+                                                                            <option value="">SIN VUELO TERRESTRE</option>
+                                                                            @foreach($terrestrialFlights as $tf)
+                                                                                <option value="{{ $tf->id }}" {{ ($pData['return_terrestrial_flight_id'] ?? null) == $tf->id ? 'selected' : '' }}>
+                                                                                    {{ $tf->originLocation?->name ?? '?' }} → {{ $tf->destinationLocation?->name ?? '?' }}
+                                                                                </option>
+                                                                            @endforeach
+                                                                        </select>
+                                                                    </div>
+
+                                                                    <div class="space-y-2">
+                                                                        <label class="text-[7px] font-black text-purple-300 uppercase tracking-widest pl-1">Hotel Regreso</label>
+                                                                        <select wire:change="selectPassengerReturnHotel({{ $pIdx }}, $event.target.value)"
+                                                                            class="tech-input w-full px-3 py-2 text-[10px] rounded-lg bg-black border-purple-500/30">
+                                                                            <option value="">SIN ALOJAMIENTO</option>
+                                                                            @foreach($hotels as $h)
+                                                                                <option value="{{ $h->id }}" {{ ($pData['return_hotel_id'] ?? null) == $h->id ? 'selected' : '' }}>{{ $h->name }}</option>
+                                                                            @endforeach
+                                                                        </select>
+                                                                    </div>
+
+                                                                    @if($pData['return_hotel_id'] ?? false)
+                                                                        <div class="flex items-center gap-3">
+                                                                            <span class="text-[8px] font-black text-purple-300 uppercase">Noches:</span>
+                                                                            <input type="number" min="1" max="30"
+                                                                                wire:change="updatePassengerReturnHotelNights({{ $pIdx }}, $event.target.value)"
+                                                                                value="{{ $pData['return_hotel_nights'] ?? 0 }}"
+                                                                                class="tech-input w-20 px-2 py-1 text-[10px] rounded-lg border-purple-500/30">
+                                                                        </div>
+                                                                    @endif
+
+                                                                    <label class="flex items-center gap-2 cursor-pointer">
+                                                                        <input type="checkbox"
+                                                                            wire:change="updatePassengerReturnService({{ $pIdx }}, 'return_vip_transfer_included', $event.target.checked)"
+                                                                            {{ ($pData['return_vip_transfer_included'] ?? false) ? 'checked' : '' }}
+                                                                            class="w-3.5 h-3.5 bg-black border-purple-500/30 text-purple-500 rounded">
+                                                                        <span class="text-[8px] font-black text-purple-300 uppercase">VIP Transfer Regreso</span>
+                                                                    </label>
+                                                                </div>
+                                                            @endif
                                                         </div>
                                                     </div>
                                                 @endforeach
@@ -765,6 +835,7 @@
                                                 Asiento</label>
                                             <select wire:model.live="seat_type"
                                                 class="tech-input w-full px-3 py-2.5 text-[10px] font-black uppercase rounded-xl bg-black">
+                                                <option value="">SIN VUELO / SOLO EXTRAS</option>
                                                 <option value="nova">NOVA</option>
                                                 <option value="supernova">SUPERNOVA</option>
                                             </select>
@@ -833,21 +904,61 @@
                                 </div>
 
                                 {{-- Hotel Selection Individual --}}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[var(--border-glass)]">
-                                    <div class="space-y-2">
-                                        <label class="block text-[9px] font-black text-pink-400 uppercase tracking-widest pl-1">Hotel Destino</label>
-                                        <select wire:model.live="hotel_id" class="tech-input w-full px-3 py-2.5 text-[10px] font-black uppercase rounded-xl bg-black">
-                                            <option value="">SIN ALOJAMIENTO</option>
-                                            @foreach($hotels as $h)
-                                                <option value="{{ $h->id }}">{{ $h->name }} ({{ $h->location?->name ?? '?' }}) — {{ number_format($h->price_per_night, 0, ',', '.') }}€/noche</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label class="block text-[9px] font-black text-pink-400 uppercase tracking-widest pl-1">Noches Estancia</label>
-                                        <input type="number" wire:model.live="hotel_nights" min="0" class="tech-input w-full px-4 py-2 text-[10px] rounded-xl bg-black">
-                                    </div>
-                                </div>
+                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[var(--border-glass)]">
+                                     <div class="space-y-2">
+                                         <label class="block text-[9px] font-black text-pink-400 uppercase tracking-widest pl-1">Hotel Destino (Ida)</label>
+                                         <select wire:model.live="hotel_id" class="tech-input w-full px-3 py-2.5 text-[10px] font-black uppercase rounded-xl bg-black">
+                                             <option value="">SIN ALOJAMIENTO</option>
+                                             @foreach($hotels as $h)
+                                                 <option value="{{ $h->id }}">{{ $h->name }} ({{ $h->location?->name ?? '?' }}) — {{ number_format($h->price_per_night, 0, ',', '.') }}€/noche</option>
+                                             @endforeach
+                                         </select>
+                                     </div>
+                                     <div class="space-y-2">
+                                         <label class="block text-[9px] font-black text-pink-400 uppercase tracking-widest pl-1">Noches (Ida)</label>
+                                         <input type="number" wire:model.live="hotel_nights" min="0" class="tech-input w-full px-4 py-2 text-[10px] rounded-xl bg-black">
+                                     </div>
+                                 </div>
+
+                                 @if($hasReturnFlight)
+                                     <div class="space-y-6 pt-6 border-t-2 border-purple-500/20">
+                                         <h4 class="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                                             Logística de Regreso
+                                         </h4>
+
+                                         <div class="space-y-4">
+                                             <label class="block text-[9px] font-black text-purple-400 uppercase tracking-widest pl-1">Vuelo Terrestre de Regreso</label>
+                                             <select wire:model.live="return_terrestrial_flight_id" class="tech-input w-full px-3 py-2.5 text-[10px] font-black uppercase rounded-xl bg-black border-purple-500/30">
+                                                 <option value="">SIN VUELO TERRESTRE</option>
+                                                 @foreach($terrestrialFlights as $tf)
+                                                     <option value="{{ $tf->id }}">{{ $tf->originLocation?->name ?? '?' }} → {{ $tf->destinationLocation?->name ?? '?' }} ({{ number_format($tf->price, 0, ',', '.') }}€)</option>
+                                                 @endforeach
+                                             </select>
+                                         </div>
+
+                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                             <div class="space-y-2">
+                                                 <label class="block text-[9px] font-black text-purple-400 uppercase tracking-widest pl-1">Hotel Regreso</label>
+                                                 <select wire:model.live="return_hotel_id" class="tech-input w-full px-3 py-2.5 text-[10px] font-black uppercase rounded-xl bg-black border-purple-500/30">
+                                                     <option value="">SIN ALOJAMIENTO</option>
+                                                     @foreach($hotels as $h)
+                                                         <option value="{{ $h->id }}">{{ $h->name }} ({{ $h->location?->name ?? '?' }}) — {{ number_format($h->price_per_night, 0, ',', '.') }}€/noche</option>
+                                                     @endforeach
+                                                 </select>
+                                             </div>
+                                             <div class="space-y-2">
+                                                 <label class="block text-[9px] font-black text-purple-400 uppercase tracking-widest pl-1">Noches (Regreso)</label>
+                                                 <input type="number" wire:model.live="return_hotel_nights" min="0" class="tech-input w-full px-4 py-2 text-[10px] rounded-xl bg-black border-purple-500/30">
+                                             </div>
+                                         </div>
+
+                                         <label class="flex items-center justify-between p-3 bg-purple-500/5 border border-purple-500/20 rounded-xl cursor-pointer hover:border-purple-500/40 transition-all">
+                                             <span class="text-[9px] font-black text-purple-300 uppercase tracking-widest">VIP Transfer Regreso</span>
+                                             <input type="checkbox" wire:model.live="return_vip_transfer_included" class="w-5 h-5 bg-black border-purple-500/30 text-purple-500 rounded">
+                                         </label>
+                                     </div>
+                                 @endif
 
                                 <div class="grid grid-cols-1 gap-3 pt-4 border-t border-[var(--border-glass)]">
                                     @foreach(['training_included' => ['Iris Training', 'emerald'], 'passport_management_included' => ['Gestión Pasaporte', 'blue'], 'refund_insurance_included' => ['Seguro Reembolso', 'indigo'], 'vip_transfer_included' => ['VIP Transfer', 'amber']] as $key => $meta)
@@ -859,6 +970,29 @@
                                                 class="w-5 h-5 bg-black border-zinc-700 text-{{ $meta[1] }}-500 rounded">
                                         </label>
                                     @endforeach
+                                </div>
+                            </div>
+
+                            {{-- Manual Adjustment Section --}}
+                            <div class="space-y-4 pt-6 border-t border-[var(--border-glass)]">
+                                <label class="block text-[10px] font-black text-amber-500 uppercase tracking-widest pl-1">Ajuste Manual / Cortesía</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <label class="block text-[8px] font-black text-[var(--text-secondary)] uppercase">Tipo de Ajuste</label>
+                                        <select wire:model.live="manual_adjustment_type" class="tech-input w-full px-3 py-2 text-[10px] rounded-lg bg-black">
+                                            <option value="none">SIN AJUSTE</option>
+                                            <option value="pct">PORCENTAJE (%)</option>
+                                            <option value="fixed">IMPORTE FIJO (€)</option>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-[8px] font-black text-[var(--text-secondary)] uppercase">Valor</label>
+                                        <input type="number" step="0.01" wire:model.live="manual_adjustment_value" class="tech-input w-full px-3 py-2 text-[10px] rounded-lg bg-black" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-[8px] font-black text-[var(--text-secondary)] uppercase">Nota de Ajuste</label>
+                                    <input type="text" wire:model="discount_note" class="tech-input w-full px-3 py-2 text-[10px] rounded-lg bg-black" placeholder="Motivo del ajuste...">
                                 </div>
                             </div>
 
@@ -898,10 +1032,11 @@
                                                     <span>Subtotal Neto</span>
                                                     <span>{{ number_format($priceBreakdown['subtotal'], 2, ',', '.') }}€</span>
                                                 </div>
-                                                @if($priceBreakdown['discount_pct'] > 0)
+                                                @if($priceBreakdown['discount_amt'] > 0)
                                                     <div class="flex justify-between text-emerald-500 font-black">
-                                                        <span>Descuento Iris Training
-                                                            (-{{ $priceBreakdown['discount_pct'] }}%)</span>
+                                                        <span>Descuento Iris Training 
+                                                            @if(!$groupMode && $priceBreakdown['discount_pct'] > 0) (-{{ $priceBreakdown['discount_pct'] }}%) @endif
+                                                        </span>
                                                         <span>−{{ number_format($priceBreakdown['discount_amt'], 2, ',', '.') }}€</span>
                                                     </div>
                                                 @endif
@@ -910,6 +1045,13 @@
                                                     <div class="flex justify-between text-violet-400 font-black">
                                                         <span>Importe ya Pagado</span>
                                                         <span>−{{ number_format($priceBreakdown['paid_amount'], 2, ',', '.') }}€</span>
+                                                    </div>
+                                                @endif
+
+                                                @if(($priceBreakdown['adj_amount'] ?? 0) > 0)
+                                                    <div class="flex justify-between text-amber-500 font-black">
+                                                        <span>Ajuste Administrativo</span>
+                                                        <span>−{{ number_format($priceBreakdown['adj_amount'], 2, ',', '.') }}€</span>
                                                     </div>
                                                 @endif
                                             </div>
@@ -932,7 +1074,16 @@
                                 </div>
                             </div>
 
-                            @if(!empty($priceBreakdown) && $priceBreakdown['space'] > 0 && $priceBreakdown['insurance'] <= 0)
+                             @php
+                                $anyWithoutInsurance = false;
+                                if ($groupMode) {
+                                    $anyWithoutInsurance = collect($selectedPassengers)->contains(fn($p) => !($p['refund_insurance_included'] ?? false));
+                                } else {
+                                    $anyWithoutInsurance = !$refund_insurance_included;
+                                }
+                             @endphp
+
+                            @if(!empty($priceBreakdown) && $priceBreakdown['space'] > 0 && $anyWithoutInsurance)
                                 <div
                                     class="bg-red-500/10 border border-red-500/30 p-4 rounded-xl flex items-start gap-3 animate-pulse">
                                     <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor"

@@ -13,6 +13,7 @@ use App\Livewire\Admin\ManageFlights;
 use App\Livewire\Admin\ManageReservations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class TaskWorkflowTest extends TestCase
@@ -22,7 +23,8 @@ class TaskWorkflowTest extends TestCase
     /**
      * Test: Admin cancela un vuelo y se generan tareas para los gestores.
      */
-    public function test_tasks_are_generated_for_gestors_when_flight_is_cancelled()
+    #[Test]
+    public function las_tareas_se_generan_para_los_gestores_cuando_el_vuelo_es_cancelado()
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $gestor = User::factory()->create(['role' => 'gestor']);
@@ -109,7 +111,8 @@ class TaskWorkflowTest extends TestCase
     /**
      * Test: Admin retrasa un vuelo y se generan tareas de notificación.
      */
-    public function test_tasks_are_generated_when_flight_is_delayed()
+    #[Test]
+    public function las_tareas_se_generan_cuando_el_vuelo_es_retrasado()
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $gestor = User::factory()->create(['role' => 'gestor']);
@@ -188,7 +191,8 @@ class TaskWorkflowTest extends TestCase
     /**
      * Test: Tarea automática de pasaporte al confirmar pago (Stripe simulation).
      */
-    public function test_passport_task_is_created_automatically_on_payment()
+    #[Test]
+    public function la_tarea_de_pasaporte_se_crea_automaticamente_al_realizar_el_pago()
     {
         $gestor = User::factory()->create(['role' => 'gestor']);
         $client = User::factory()->create(['role' => 'cliente', 'name' => 'Client Three', 'assigned_manager_id' => $gestor->id]);

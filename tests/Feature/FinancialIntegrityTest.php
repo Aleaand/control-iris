@@ -12,6 +12,7 @@ use App\Models\PriceLog;
 use App\Livewire\Admin\ManageReservations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class FinancialIntegrityTest extends TestCase
@@ -30,7 +31,8 @@ class FinancialIntegrityTest extends TestCase
     /**
      * Test que verifica el descuento automático del 10% por certificado de entrenamiento.
      */
-    public function test_iris_training_discount_application()
+    #[Test]
+    public function aplicacion_de_descuento_por_entrenamiento_iris()
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $client = User::factory()->create();
@@ -105,7 +107,8 @@ class FinancialIntegrityTest extends TestCase
     /**
      * Test que verifica el cálculo correcto de adendas (solo cobrar la diferencia).
      */
-    public function test_adenda_calculates_only_price_difference()
+    #[Test]
+    public function calculo_de_adenda_solo_diferencia_de_precio()
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $client = User::factory()->create();
@@ -168,7 +171,8 @@ class FinancialIntegrityTest extends TestCase
     /**
      * Test que verifica ajustes manuales (Porcentaje y Fijo).
      */
-    public function test_manual_adjustments_are_applied_correctly()
+    #[Test]
+    public function ajustes_manuales_aplicados_correctamente()
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $client = User::factory()->create();

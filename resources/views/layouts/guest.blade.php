@@ -14,15 +14,7 @@
 
     <!-- Scripts -->
     <script>
-        function applyTheme() {
-            if (localStorage.getItem('theme') === 'light') {
-                document.documentElement.classList.add('light-mode');
-            } else {
-                document.documentElement.classList.remove('light-mode');
-            }
-        }
-        applyTheme();
-        document.addEventListener('livewire:navigated', applyTheme);
+        document.documentElement.classList.remove('light-mode');
     </script>
     <style>
         html,
@@ -34,7 +26,7 @@
             display: none !important;
         }
     </style>
-    @vite(['resources/css/app.css', 'resources/css/obsidian-design.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body class="font-sans antialiased obsidian-bg" style="color: var(--text-primary); background-color: #0a0a0f;">

@@ -23,7 +23,7 @@
             applyTheme();
             document.addEventListener('livewire:navigated', applyTheme);
         </script>
-        @vite(['resources/css/app.css', 'resources/css/obsidian-design.css', 'resources/js/app.js'])
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased obsidian-bg overflow-x-hidden" 
           style="color: var(--text-primary)"

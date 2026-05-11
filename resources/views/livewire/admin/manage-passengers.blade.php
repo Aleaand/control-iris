@@ -293,11 +293,13 @@
                                     <div class="space-y-2">
                                         <label class="block text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest pl-1">Nombre <span class="text-rose-500">*</span></label>
                                         <input type="text" wire:model="name" required class="tech-input w-full px-4 py-2.5 text-xs focus:outline-none transition-all rounded-xl">
+                                        @error('name') <span class="text-red-500 text-[8px] font-black uppercase mt-1 block">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div class="space-y-2">
                                             <label class="block text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest pl-1">Primer Apellido <span class="text-rose-500">*</span></label>
                                             <input type="text" wire:model="primarylastname" required class="tech-input w-full px-4 py-2.5 text-xs focus:outline-none transition-all rounded-xl">
+                                            @error('primarylastname') <span class="text-red-500 text-[8px] font-black uppercase mt-1 block">{{ $message }}</span> @enderror
                                         </div>
                                         <div class="space-y-2">
                                             <label class="block text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest pl-1">Segundo Apellido</label>
@@ -308,6 +310,7 @@
                                         <div class="space-y-2">
                                             <label class="block text-[9px] font-black text-[var(--theme-accent)] uppercase tracking-widest pl-1">Nº Documento <span class="text-rose-500">*</span></label>
                                             <input type="text" wire:model="document_number" required class="tech-input w-full px-4 py-2.5 text-xs font-mono focus:outline-none transition-all rounded-xl border-[var(--theme-accent-border)]">
+                                            @error('document_number') <span class="text-red-500 text-[8px] font-black uppercase mt-1 block">{{ $message }}</span> @enderror
                                         </div>
                                         <div class="space-y-2">
                                             <label class="block text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest pl-1">Origen / País <span class="text-rose-500">*</span></label>
@@ -317,11 +320,13 @@
                                                     <option value="{{ $c->country_code }}">{{ $c->country_code }}</option>
                                                 @endforeach
                                             </select>
+                                            @error('document_country') <span class="text-red-500 text-[8px] font-black uppercase mt-1 block">{{ $message }}</span> @enderror
                                         </div>
                                     </div>
                                     <div class="space-y-2">
                                         <label class="block text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest pl-1">Fecha de Nacimiento <span class="text-rose-500">*</span></label>
                                         <input type="date" wire:model="birth_date" required class="tech-input w-full px-4 py-2.5 text-xs font-mono focus:outline-none transition-all rounded-xl">
+                                        @error('birth_date') <span class="text-red-500 text-[8px] font-black uppercase mt-1 block">{{ $message }}</span> @enderror
                                     </div>
                                 </div>
                             </div>

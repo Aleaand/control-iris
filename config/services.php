@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'trade_gov' => [
+        'api_key' => env('TRADE_GOV_API_KEY'),
+    ],
+
 ];

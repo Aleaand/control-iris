@@ -12,6 +12,7 @@ use App\Models\PriceLog;
 use App\Livewire\Admin\ManageReservations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ReservationFlowTest extends TestCase
@@ -26,7 +27,8 @@ class ReservationFlowTest extends TestCase
         PriceLog::create(['item_type' => 'vip_transfer', 'new_price' => 100, 'item_id' => 0, 'old_price' => 0]);
     }
 
-    public function test_can_create_group_reservation_for_multiple_passengers()
+    #[Test]
+    public function puede_crear_reserva_grupal_para_multiples_pasajeros()
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $client = User::factory()->create(['role' => 'cliente']);
@@ -93,7 +95,8 @@ class ReservationFlowTest extends TestCase
         $this->assertEquals(2, Reservation::count());
     }
 
-    public function test_can_create_reservation_without_flight_for_only_training()
+    #[Test]
+    public function puede_crear_reserva_sin_vuelo_solo_para_entrenamiento()
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $client = User::factory()->create(['role' => 'cliente']);

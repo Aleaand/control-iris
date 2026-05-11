@@ -43,27 +43,38 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     })->name('admin.reservations.ticket');
     Route::get('/admin/finances', \App\Livewire\Admin\FinancialDashboard::class)->name('admin.finances');
     Route::get('/admin/tariffs', \App\Livewire\Admin\ManageTariffs::class)->name('admin.tariffs');
+});
 
-    // Stripe redirect callbacks (authenticated)
-    Route::get('/admin/stripe/success', [StripeController::class, 'success'])->name('stripe.success');
-    Route::get('/admin/stripe/cancel', [StripeController::class, 'cancel'])->name('stripe.cancel');
+// Stripe Callback Routes (Available for Admin & Gestors)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/payment/success', [StripeController::class, 'success'])->name('stripe.success');
+    Route::get('/payment/cancel', [StripeController::class, 'cancel'])->name('stripe.cancel');
 });
 
 // Stripe Webhook — no auth, no CSRF (excluded in bootstrap/app.php)
 Route::post('/stripe/webhook', [StripeController::class, 'webhook'])->name('stripe.webhook');
+
+// Ruta pública de pago (Checkout)
+Route::get('/pay/{token}', [StripeController::class, 'pay'])->name('payment.pay');
 
 // ── Panel del Gestor ─────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:gestor'])->prefix('gestor')->name('gestor.')->group(function () {
     Route::get('/dashboard',     \App\Livewire\Gestor\GestorDashboard::class)->name('dashboard');
     Route::get('/clients',       \App\Livewire\Gestor\GestorClients::class)->name('clients');
     Route::get('/reservations',  \App\Livewire\Gestor\GestorReservations::class)->name('reservations');
-    Route::get('/compliance',    \App\Livewire\Gestor\GestorCompliance::class)->name('compliance');
+    Route::get('/documentation', \App\Livewire\Gestor\GestorCompliance::class)->name('documentation');
     Route::get('/payments',      \App\Livewire\Gestor\GestorPayments::class)->name('payments');
     Route::get('/radar',         \App\Livewire\Gestor\GestorRadar::class)->name('radar');
-    Route::get('/missions',      \App\Livewire\Gestor\GestorMissions::class)->name('missions');
+    Route::get('/tasks',         \App\Livewire\Gestor\GestorTasks::class)->name('tasks');
+    Route::get('/profile',       \App\Livewire\Gestor\GestorProfile::class)->name('profile');
     Route::get('/communication', \App\Livewire\Gestor\GestorCommunication::class)->name('communication');
 
     // PDF del ticket (Final GO)
-    Route::get('/reservations/{reservation}/ticket-pdf', [\App\Http\Controllers\GestorController::class, 'downloadTicket'])
+    Route::get('/reservations/{reservation:id}/ticket-pdf', [\App\Http\Controllers\GestorController::class, 'downloadTicket'])
         ->name('reservations.ticket-pdf');
+
+    // Ver Ticket (HTML)
+    Route::get('/reservations/{reservation:id}/ticket', function (\App\Models\Reservation $reservation) {
+        return view('admin.reservation-ticket', ['res' => $reservation->load(['user', 'spaceFlight.destination', 'logistics.hotel', 'logistics.terrestrialFlight', 'logistics.terrestrialFlight.originLocation', 'logistics.terrestrialFlight.destinationLocation', 'adendas'])]);
+    })->name('reservations.ticket');
 });

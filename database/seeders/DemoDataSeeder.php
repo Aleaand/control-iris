@@ -58,10 +58,7 @@ class DemoDataSeeder extends Seeder
             'departure_datetime' => Carbon::now()->addDays(5),
             'arrival_datetime' => Carbon::now()->addDays(5)->addHours(8),
             'price' => 8500.00,
-            'tourist_capacity' => 0,
             'executive_capacity' => 12,
-            'available_tourist_seats' => 0,
-            'available_executive_seats' => 12,
         ]);
 
         // 4. SPACE FLIGHTS
@@ -103,7 +100,6 @@ class DemoDataSeeder extends Seeder
             'password' => Hash::make('Cliente123'),
             'birth_date' => '1970-02-14',
             'phone' => '+15559876543',
-            'physical_fitness' => 'Excelente',
             'assigned_manager_id' => $gestor1->id,
         ]);
 
@@ -114,7 +110,6 @@ class DemoDataSeeder extends Seeder
             'password' => Hash::make('Cliente123'),
             'birth_date' => '1995-08-30',
             'phone' => '+447000888999',
-            'physical_fitness' => 'En entrenamiento',
             'assigned_manager_id' => $gestor1->id,
         ]);
 

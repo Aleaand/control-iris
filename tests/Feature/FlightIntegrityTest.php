@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Livewire\Admin\ManageReservations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class FlightIntegrityTest extends TestCase
@@ -20,7 +21,8 @@ class FlightIntegrityTest extends TestCase
     /**
      * Test que verifica la protección contra Overbooking.
      */
-    public function test_cannot_overbook_flight_capacity()
+    #[Test]
+    public function no_se_puede_sobrevender_la_capacidad_del_vuelo()
     {
         $admin = User::factory()->create(['role' => 'admin']);
         
@@ -124,7 +126,8 @@ class FlightIntegrityTest extends TestCase
     /**
      * Test que verifica la prevención de conflictos de fecha para un mismo pasajero.
      */
-    public function test_passenger_cannot_have_overlapping_flights()
+    #[Test]
+    public function un_pasajero_no_puede_tener_vuelos_que_se_solapen()
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $ship = Starship::create(['name' => 'SHIP', 'general_capacity' => 10, 'vip_capacity' => 10, 'operational_cost_per_au' => 0, 'cruise_speed_au' => 1, 'crew_hourly_rate' => 0, 'crew_daily_rate' => 0]);

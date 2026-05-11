@@ -23,6 +23,9 @@ class Passenger extends Model
         'physical_fitness',
         'iris_passport_number',
         'iris_passport_expiration',
+        'passport_photo',
+        'passport_status',
+        'passport_pdf',
         'training_certificate_date',
         'training_certificate_status',
     ];

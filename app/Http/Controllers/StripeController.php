@@ -19,6 +19,71 @@ class StripeController extends Controller
     }
 
     /**
+     * Start Stripe Checkout from a PaymentLink.
+     */
+    public function pay(string $token)
+    {
+        $link = \App\Models\PaymentLink::where('token', $token)
+            ->where('status', 'activo')
+            ->where('expires_at', '>', now())
+            ->firstOrFail();
+
+        $reservations = Reservation::where('booking_group_id', $link->booking_group_id)->get();
+        if ($reservations->isEmpty()) {
+            abort(404, 'No se encontraron reservas para este enlace.');
+        }
+
+        $totalCents = 0;
+        $description = "";
+        $resCount = $reservations->count();
+        
+        foreach ($reservations as $res) {
+            $totalCents += (int) ($res->total_price * 100);
+            $description .= "#{$res->id_locator} (" . ($res->passenger?->full_name ?? 'Pasajero') . ") ";
+        }
+
+        // Stripe Checkout Limit: 999,999.99 (99,999,999 cents)
+        $isCapped = false;
+        $originalAmount = $totalCents / 100;
+        if ($totalCents > 99999999) {
+            $totalCents = 99999999;
+            $isCapped = true;
+        }
+
+        $session = \Stripe\Checkout\Session::create([
+            'payment_method_types' => ['card'],
+            'line_items'           => [
+                [
+                    'price_data' => [
+                        'currency'     => 'eur',
+                        'product_data' => [
+                            'name'        => "Misión Iris Aerospace" . ($isCapped ? " (Límite Stripe)" : ""),
+                            'description' => ($isCapped ? "[PRECIO REAL: " . number_format($originalAmount, 2, ',', '.') . "€] " : "") . "Reserva de grupo: " . trim($description),
+                        ],
+                        'unit_amount'  => $totalCents,
+                    ],
+                    'quantity'   => 1,
+                ]
+            ],
+            'mode'                 => 'payment',
+            'success_url'          => route('stripe.success') . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url'           => route('stripe.cancel') . '?session_id={CHECKOUT_SESSION_ID}',
+            'metadata' => [
+                'booking_group_id' => $link->booking_group_id,
+                'is_capped'        => $isCapped ? '1' : '0',
+                'source'           => $link->creator?->role === 'gestor' ? 'gestor' : 'admin',
+            ],
+        ]);
+
+        // Guardar session_id en todas las reservas del grupo
+        foreach ($reservations as $res) {
+            $res->update(['stripe_session_id' => $session->id]);
+        }
+
+        return redirect($session->url);
+    }
+
+    /**
      * Stripe redirects here after a successful payment.
      */
     public function success(Request $request)
@@ -30,12 +95,13 @@ class StripeController extends Controller
                 ->with('error', 'Sesión de pago no encontrada.');
         }
 
+        $session = \Stripe\Checkout\Session::retrieve($sessionId);
+        $isGestor = ($session->metadata->source ?? 'admin') === 'gestor';
+
         // Buscar la primera reserva con esta sesión
         $reservation = Reservation::where('stripe_session_id', $sessionId)->first();
 
         if ($reservation) {
-            $session = \Stripe\Checkout\Session::retrieve($sessionId);
-
             if ($session->payment_status === 'paid') {
                 $groupId     = $reservation->booking_group_id;
                 $receiptUrl  = $session->url;
@@ -49,10 +115,12 @@ class StripeController extends Controller
                     } catch (\Exception $e) { /* non-critical */ }
                 }
 
-                // Confirmar TODAS las filas del grupo (no solo la primera)
-                // Anti-paradoja: solo actualizamos filas que AÚN NO están pagadas
+                // Confirmar TODAS las filas del grupo
                 $toUpdate = Reservation::with('logistics', 'passenger')
-                    ->where('booking_group_id', $groupId)
+                    ->where(function($q) use ($groupId, $sessionId) {
+                        $q->where('booking_group_id', $groupId)
+                          ->orWhere('stripe_session_id', $sessionId);
+                    })
                     ->where('payment_status', '!=', 'paid')
                     ->get();
 
@@ -62,6 +130,15 @@ class StripeController extends Controller
                         'status'             => 'Confirmada',
                         'paid_at'            => now(),
                         'stripe_receipt_url' => $receiptUrl,
+                        'stripe_receipts'    => [
+                            [
+                                'type'        => 'payment',
+                                'amount'      => $res->total_price,
+                                'date'        => now()->format('Y-m-d H:i:s'),
+                                'description' => 'Pago Original (Checkout)',
+                                'url'         => $receiptUrl
+                            ]
+                        ],
                     ]);
 
                     $this->automateTasks($res);
@@ -69,20 +146,30 @@ class StripeController extends Controller
             }
         }
 
+        if ($isGestor) {
+            return redirect()->route('gestor.reservations')
+                ->with('message', 'Pago confirmado. Su reserva ha sido marcada como PAGADA con éxito.');
+        }
+
         return redirect()->route('admin.finances')
             ->with('message', 'Pago confirmado por Stripe. Reserva ' . ($reservation?->id_locator ? substr($reservation->id_locator, 0, 8) : '') . '... marcada como PAGADA.');
     }
 
-    /**
-     * Stripe redirects here if the user cancels payment.
-     */
     public function cancel(Request $request)
     {
         $sessionId = $request->query('session_id');
         
+        $session = $sessionId ? \Stripe\Checkout\Session::retrieve($sessionId) : null;
+        $isGestor = ($session?->metadata->source ?? 'admin') === 'gestor';
+
         if ($sessionId) {
             Reservation::where('stripe_session_id', $sessionId)
                 ->update(['payment_status' => 'failed']);
+        }
+
+        if ($isGestor) {
+            return redirect()->route('gestor.reservations')
+                ->with('error', 'El proceso de pago fue cancelado.');
         }
 
         return redirect()->route('admin.reservations')
@@ -127,6 +214,15 @@ class StripeController extends Controller
                             'payment_status' => 'paid',
                             'status'         => 'Confirmada',
                             'paid_at'        => now(),
+                            'stripe_receipts' => [
+                                [
+                                    'type'        => 'payment',
+                                    'amount'      => $res->total_price,
+                                    'date'        => now()->format('Y-m-d H:i:s'),
+                                    'description' => 'Pago Original (Webhook)',
+                                    'url'         => '#'
+                                ]
+                            ],
                         ]);
                         $this->automateTasks($res);
                     }

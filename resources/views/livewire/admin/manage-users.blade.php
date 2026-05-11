@@ -127,7 +127,7 @@
                                             <div>
                                                 <h4
                                                     class="text-base font-black text-[var(--text-primary)] uppercase tracking-tight group-hover:text-[var(--theme-accent)] transition-colors">
-                                                    {{ $u->name }}
+                                                    {{ $u->name }} {{ $u->primarylastname }} {{ $u->secondarylastname }}
                                                 </h4>
                                                 <div class="flex flex-wrap items-center gap-3 mt-1">
                                                     <span
@@ -359,16 +359,41 @@
                                     </div>
                                 @endif
 
-                                <div>
-                                    <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1"
-                                        style="color: var(--text-secondary)">Nombre y Apellidos <span
-                                            class="text-rose-500">*</span></label>
-                                    <input type="text" wire:model.live.debounce.300ms="name"
-                                        class="tech-input w-full border px-3 py-2 focus:outline-none transition-colors text-sm rounded-lg {{ $isEditing ? 'border-amber-500/30 focus:border-amber-500' : 'border-blue-500/30 focus:border-blue-400' }}"
-                                        style="background: var(--tech-input-bg); color: var(--text-primary)">
-                                    @error('name') <span
-                                        class="text-rose-500 text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span>
-                                    @enderror
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1"
+                                            style="color: var(--text-secondary)">Nombre <span
+                                                class="text-rose-500">*</span></label>
+                                        <input type="text" wire:model.live.debounce.300ms="name"
+                                            class="tech-input w-full border px-3 py-2 focus:outline-none transition-colors text-sm rounded-lg {{ $isEditing ? 'border-amber-500/30 focus:border-amber-500' : 'border-blue-500/30 focus:border-blue-400' }}"
+                                            style="background: var(--tech-input-bg); color: var(--text-primary)">
+                                        @error('name') <span
+                                            class="text-rose-500 text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1"
+                                            style="color: var(--text-secondary)">Primer Apellido <span
+                                                class="text-rose-500">*</span></label>
+                                        <input type="text" wire:model.live.debounce.300ms="primarylastname"
+                                            class="tech-input w-full border px-3 py-2 focus:outline-none transition-colors text-sm rounded-lg {{ $isEditing ? 'border-amber-500/30 focus:border-amber-500' : 'border-blue-500/30 focus:border-blue-400' }}"
+                                            style="background: var(--tech-input-bg); color: var(--text-primary)">
+                                        @error('primarylastname') <span
+                                            class="text-rose-500 text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1"
+                                            style="color: var(--text-secondary)">Segundo Apellido (Opcional)</label>
+                                        <input type="text" wire:model.live.debounce.300ms="secondarylastname"
+                                            class="tech-input w-full border px-3 py-2 focus:outline-none transition-colors text-sm rounded-lg {{ $isEditing ? 'border-amber-500/30 focus:border-amber-500' : 'border-blue-500/30 focus:border-blue-400' }}"
+                                            style="background: var(--tech-input-bg); color: var(--text-primary)">
+                                        @error('secondarylastname') <span
+                                            class="text-rose-500 text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span>
+                                        @enderror
+                                    </div>
                                 </div>
 
                                 <div>

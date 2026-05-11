@@ -11,6 +11,8 @@ class ReservationLogistic extends Model
         'terrestrial_flight_id',
         'hotel_id',
         'hotel_nights',
+        'hotel_check_in',
+        'hotel_check_out',
         'training_included',
         'vip_transfer_included',
         'refund_insurance_included',
@@ -24,6 +26,8 @@ class ReservationLogistic extends Model
             'vip_transfer_included' => 'boolean',
             'refund_insurance_included' => 'boolean',
             'passport_management_included' => 'boolean',
+            'hotel_check_in' => 'date',
+            'hotel_check_out' => 'date',
         ];
     }
 

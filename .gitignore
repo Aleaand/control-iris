@@ -34,5 +34,3 @@ debug_period.php
 !README.md
 !CHANGELOG.md
 
-# Database Migrations (Excluded by request)
-/database/migrations

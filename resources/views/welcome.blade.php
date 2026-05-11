@@ -10,16 +10,8 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <script>
-        function applyTheme() {
-            if (localStorage.getItem('theme') === 'light') {
-                document.documentElement.classList.add('light-mode');
-            } else {
-                document.documentElement.classList.remove('light-mode');
-            }
-        }
-        applyTheme();
-        document.addEventListener('livewire:navigated', applyTheme);
-
+        document.documentElement.classList.remove('light-mode');
+        
         let mouseX = window.innerWidth / 2;
         let mouseY = window.innerHeight / 2;
 
@@ -74,7 +66,7 @@
         html, body { background-color: #0a0a0f !important; }
         [x-cloak] { display: none !important; }
     </style>
-    @vite(['resources/css/app.css', 'resources/css/obsidian-design.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body class="font-sans antialiased obsidian-bg text-[var(--text-primary)]" style="color: var(--text-primary); background-color: #0a0a0f;">
@@ -90,12 +82,7 @@
         <div class="relative z-10 w-full max-w-4xl flex flex-col items-center text-center space-y-10 animate-tech" style="opacity: 0;">
             <div class="relative group">
                 <div class="relative w-42 h-42 md:w-40 md:h-40 rounded-3xl flex items-center justify-center p-3">
-                    <script>
-                        document.write('<img src="' + (localStorage.getItem('theme') === 'light' ? '{{ asset('assets/logo_iris_black.png') }}' : '{{ asset('assets/logo_iris.png') }}') + '" alt="Iris Aerospace" class="w-full">');
-                    </script>
-                    <noscript>
-                        <img src="{{ asset('assets/logo_iris.png') }}" alt="Iris Aerospace" class="w-full">
-                    </noscript>
+                    <img src="{{ asset('assets/logo_iris.png') }}" alt="Iris Aerospace" class="w-full">
                 </div>
             </div>
 

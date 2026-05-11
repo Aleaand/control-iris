@@ -3,7 +3,7 @@
 use App\Models\User;
 use Livewire\Volt\Volt;
 
-test('profile page is displayed', function () {
+test('la página de perfil se muestra correctamente', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -17,7 +17,7 @@ test('profile page is displayed', function () {
         ->assertSeeVolt('profile.delete-user-form');
 });
 
-test('profile information can be updated', function () {
+test('la información del perfil se puede actualizar', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -38,7 +38,7 @@ test('profile information can be updated', function () {
     $this->assertNull($user->email_verified_at);
 });
 
-test('email verification status is unchanged when the email address is unchanged', function () {
+test('el estado de verificación de correo no cambia si el correo no cambia', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -55,7 +55,7 @@ test('email verification status is unchanged when the email address is unchanged
     $this->assertNotNull($user->refresh()->email_verified_at);
 });
 
-test('user can delete their account', function () {
+test('el usuario puede eliminar su cuenta', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -73,7 +73,7 @@ test('user can delete their account', function () {
     $this->assertSoftDeleted($user);
 });
 
-test('correct password must be provided to delete account', function () {
+test('se debe proporcionar la contraseña correcta para eliminar la cuenta', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
