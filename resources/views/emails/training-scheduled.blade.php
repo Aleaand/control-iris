@@ -25,7 +25,7 @@
 
     @if($hasTransfer)
         <div style="background: rgba(16, 185, 129, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2); margin-bottom: 25px;">
-            <p style="color: #10b981; font-weight: bold; font-size: 11px; text-transform: uppercase; margin-top: 0;">🚌 Traslado Incluido</p>
+            <p style="color: #10b981; font-weight: bold; font-size: 11px; text-transform: uppercase; margin-top: 0;">Traslado Incluido</p>
             <p style="color: #888888; font-size: 11px; margin-bottom: 0;">
                 Se ha coordinado automáticamente su traslado al Centro de Entrenamiento. Su gestor le confirmará los detalles de la recogida.
             </p>
