@@ -981,7 +981,7 @@
                                         <label class="block text-[8px] font-black text-[var(--text-secondary)] uppercase">Tipo de Ajuste</label>
                                         <select wire:model.live="manual_adjustment_type" class="tech-input w-full px-3 py-2 text-[10px] rounded-lg bg-black">
                                             <option value="none">SIN AJUSTE</option>
-                                            <option value="pct">PORCENTAJE (%)</option>
+                                            <option value="pct">DESCUENTO (%)</option>
                                             <option value="fixed">IMPORTE FIJO (€)</option>
                                         </select>
                                     </div>

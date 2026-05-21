@@ -66,7 +66,7 @@ class FinancialDashboard extends Component
 
         // Income Metrics based on FLIGHT departure date (Operational View)
         $paidReservations = (clone $query)
-            ->where('payment_status', 'paid')
+            ->whereIn('payment_status', ['paid', 'pending'])
             ->whereHas('spaceFlight', function($q) use ($start, $end) {
                 $q->whereBetween('departure_date', [$start, $end]);
             })
@@ -106,7 +106,7 @@ class FinancialDashboard extends Component
         $failed = Reservation::where('payment_status', 'failed')->count();
 
         $selectedYearVal = $this->selectedYear ?? now()->year;
-        $annualPaidReservations = Reservation::where('payment_status', 'paid')
+        $annualPaidReservations = Reservation::whereIn('payment_status', ['paid', 'pending'])
             ->whereHas('spaceFlight', function($q) use ($selectedYearVal) {
                 $q->whereYear('departure_date', $selectedYearVal);
             })
@@ -248,7 +248,7 @@ class FinancialDashboard extends Component
         return \App\Models\Flight::with('starship')
             ->whereNotIn('status', ['cancelled', 'landed'])
             ->where('departure_date', '>', now())
-            ->whereRaw('(SELECT COUNT(*) FROM reservations WHERE reservations.space_flight_id = flights.id AND reservations.payment_status = \'paid\') / CAST(NULLIF(flights.total_capacity, 0) AS FLOAT) < 0.8')
+            ->whereRaw('(SELECT COUNT(*) FROM reservations WHERE reservations.space_flight_id = flights.id AND reservations.payment_status IN (\'paid\', \'pending\')) / CAST(NULLIF(flights.total_capacity, 0) AS FLOAT) < 0.8')
             ->orderBy('departure_date')
             ->paginate($this->getPerPage(), pageName: 'anaPage');
     }
@@ -264,7 +264,7 @@ class FinancialDashboard extends Component
         for ($m = 1; $m <= 12; $m++) {
             $labels[] = Carbon::create()->month($m)->locale('es')->translatedFormat('M');
 
-            $n = Reservation::where('payment_status', 'paid')
+            $n = Reservation::whereIn('payment_status', ['paid', 'pending'])
                 ->whereHas('spaceFlight', function($q) use ($m, $year) {
                     $q->whereMonth('departure_date', $m)
                       ->whereYear('departure_date', $year);

@@ -20,27 +20,42 @@
         $monthName = $firstDayOfMonth->translatedFormat('F');
     @endphp
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        <div class="xl:col-span-1">
-            @if(count($contactTasks ?? []) > 0)
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">        <div class="xl:col-span-1">
+            @if(count($globalRequests ?? []) > 0)
                 <div class="tech-card rounded-xl p-5 border border-cyan-500/20 bg-cyan-500/5 h-full">
                     <h2 class="font-black uppercase tracking-widest text-cyan-400 mb-4 text-sm flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                        Solicitudes Globales
+                        Solicitudes y Citas
                     </h2>
                     <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                        @foreach($contactTasks as $task)
+                        @foreach($globalRequests as $request)
                             <div class="p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                                 <div class="flex items-center justify-between mb-2">
-                                    <span class="font-bold text-xs truncate mr-2" style="color:var(--text-primary)">{{ $task->title }}</span>
-                                    <span class="font-mono-tech text-[9px] px-2 py-0.5 rounded text-white bg-{{ $task->priorityColor() }}-500 flex-shrink-0">
-                                        {{ strtoupper($task->priority) }}
+                                    <span class="font-bold text-xs truncate mr-2" style="color:var(--text-primary)">{{ $request->title }}</span>
+                                    <span class="font-mono-tech text-[9px] px-2 py-0.5 rounded text-white bg-{{ $request->priorityColor }}-500 flex-shrink-0">
+                                        {{ strtoupper($request->priority) }}
                                     </span>
                                 </div>
-                                <p class="text-[9px] text-zinc-400 leading-relaxed mb-2">{{ Str::limit($task->description, 80) }}</p>
-                                <button wire:click="openMeetingForm({{ $task->id }})" class="w-full py-1.5 rounded text-[9px] font-bold uppercase bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors">
-                                    Programar
-                                </button>
+                                <p class="text-[9px] text-zinc-400 leading-relaxed mb-2">{{ Str::limit($request->description, 80) }}</p>
+                                
+                                @if($request->type === 'task')
+                                    <button wire:click="openMeetingForm({{ $request->id }})" class="w-full py-1.5 rounded text-[9px] font-bold uppercase bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors">
+                                        Programar
+                                    </button>
+                                @else
+                                    <div class="flex gap-2">
+                                        @if($request->link)
+                                            <a href="{{ $request->link }}" target="_blank" class="flex-1 text-center py-1.5 rounded text-[9px] font-bold uppercase bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors">
+                                                Unirse
+                                            </a>
+                                        @endif
+                                        @if($request->client_id)
+                                            <button wire:click="selectClient({{ $request->client_id }})" class="flex-1 py-1.5 rounded text-[9px] font-bold uppercase bg-white/10 text-white hover:bg-white/20 transition-colors">
+                                                Ver Cliente
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
@@ -51,6 +66,7 @@
                 </div>
             @endif
         </div>
+
 
         {{-- Calendario Visual --}}
         <div class="xl:col-span-2 tech-card rounded-xl p-5">
@@ -170,25 +186,36 @@
                 </div>
 
                 @if(count($clientTasks ?? []) > 0)
-                    <div class="tech-card rounded-xl p-4 mb-4 border border-amber-500/20 bg-amber-500/5">
-                        <h3 class="font-bold text-amber-400 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Tareas pendientes para este cliente
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            @foreach($clientTasks as $task)
-                                <div class="p-3 rounded border border-white/10 bg-white/5">
-                                    <div class="flex justify-between items-center mb-1">
-                                        <span class="font-bold text-[10px] text-zinc-200">{{ $task->title }}</span>
-                                        <span class="font-mono-tech text-[8px] px-1.5 py-0.5 rounded text-white bg-{{ $task->priorityColor() }}-500">{{ strtoupper($task->priority) }}</span>
+                    <div class="tech-card rounded-xl p-4 mb-4 border border-amber-500/20 bg-amber-500/5 transition-all">
+                        <button wire:click="$toggle('showClientTasks')" class="w-full flex items-center justify-between group">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-amber-400 text-[10px] uppercase tracking-widest flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Tareas pendientes para este cliente
+                                </h3>
+                                <span class="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[8px] font-bold">{{ count($clientTasks) }}</span>
+                            </div>
+                            <svg class="w-4 h-4 text-amber-500/40 group-hover:text-amber-400 transition-transform {{ $showClientTasks ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        
+                        @if($showClientTasks)
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 animate-fadeIn">
+                                @foreach($clientTasks as $task)
+                                    <div class="p-3 rounded border border-white/10 bg-white/5">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="font-bold text-[10px] text-zinc-200">{{ $task->title }}</span>
+                                            <span class="font-mono-tech text-[8px] px-1.5 py-0.5 rounded text-white bg-{{ $task->priorityColor() }}-500">{{ strtoupper($task->priority) }}</span>
+                                        </div>
+                                        <p class="text-[9px] text-zinc-400 mb-2">{{ Str::limit($task->description, 60) }}</p>
+                                        <button wire:click="openMeetingForm({{ $task->id }})" class="w-full py-1 rounded text-[9px] font-bold uppercase bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors">
+                                            Resolver
+                                        </button>
                                     </div>
-                                    <p class="text-[9px] text-zinc-400 mb-2">{{ Str::limit($task->description, 60) }}</p>
-                                    <button wire:click="openMeetingForm({{ $task->id }})" class="w-full py-1 rounded text-[9px] font-bold uppercase bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors">
-                                        Resolver
-                                    </button>
-                                </div>
-                            @endforeach
-                        </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 @endif
 

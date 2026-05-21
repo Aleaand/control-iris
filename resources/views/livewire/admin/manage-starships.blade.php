@@ -174,6 +174,18 @@
 
                             <div>
                                 <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1" style="color: var(--text-secondary)">
+                                    Depreciación por AU(€)
+                                </label>
+                                <input type="number" min="0" step="0.01" wire:model="depreciation_per_au"
+                                    class="w-full border {{ $isEditing ? 'border-amber-500/30 focus:border-amber-500' : 'border-blue-500/30 focus:border-blue-400' }} px-3 py-2 font-mono focus:outline-none transition-colors text-sm rounded-lg"
+                                    style="background: var(--tech-input-bg); color: var(--text-primary)">
+                                @error('depreciation_per_au') <span class="text-rose-500 text-[10px] font-mono-tech mt-1 block uppercase">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-mono-tech mb-1 uppercase tracking-widest pl-1" style="color: var(--text-secondary)">
                                     Estado Operativo
                                 </label>
                                 <select wire:model.live="status"

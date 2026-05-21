@@ -216,7 +216,7 @@
                     <div class="space-y-2">
                         @foreach($upcomingFlights as $res)
                             @php
-                                $daysLeft = now()->diffInDays($res->spaceFlight?->departure_date, false);
+                                $daysLeft = (int) now()->diffInDays($res->spaceFlight?->departure_date, false);
                                 $isUrgent = $daysLeft <= 3;
                             @endphp
                             <div

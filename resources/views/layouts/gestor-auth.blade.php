@@ -9,10 +9,13 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <script>
         function applyTheme() {
-            if (localStorage.getItem('theme') === 'light') {
-                document.documentElement.classList.add('light-mode');
-            } else {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
                 document.documentElement.classList.remove('light-mode');
+                document.documentElement.style.backgroundColor = '#0a0a0f';
+            } else {
+                document.documentElement.classList.add('light-mode');
+                document.documentElement.style.backgroundColor = '#f4f4f7';
             }
         }
         applyTheme();

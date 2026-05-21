@@ -315,7 +315,7 @@
                         </h3>
                         @if($isEditing)
                             <button type="button" wire:click="setCreateMode"
-                                class="text-[10px] uppercase font-mono-tech tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white px-2 py-1 transition-colors border border-zinc-300 dark:border-zinc-700/50 hover:border-black/20 dark:hover:border-white/20 rounded-lg flex items-center gap-1.5"
+                                class="text-[10px] uppercase font-mono-tech tracking-widest text-zinc-400 dark:text-zinc-500 hover:text-black dark:hover:text-white px-2 py-1 transition-colors border border-zinc-200 dark:border-zinc-700/50 hover:border-black/20 dark:hover:border-white/20 rounded-lg flex items-center gap-1.5"
                                 style="background: var(--tech-hover-bg)">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -349,12 +349,12 @@
                                 @if($isEditing)
                                     <div>
                                         <label
-                                            class="block text-[10px] font-mono-tech text-zinc-500 mb-1 uppercase tracking-widest pl-1">ID
+                                            class="block text-[10px] font-mono-tech text-zinc-400 dark:text-zinc-500 mb-1 uppercase tracking-widest pl-1">ID
                                             DE EXPEDIENTE</label>
                                         <input type="text"
                                             value="IRIS-{{ str_pad($userId, 4, '0', STR_PAD_LEFT) }}-{{ strtoupper($roleFilter) }}"
                                             readonly
-                                            class="w-full border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-zinc-500 font-mono text-sm cursor-not-allowed outline-none rounded-lg"
+                                            class="w-full border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-zinc-400 dark:text-zinc-500 font-mono text-sm cursor-not-allowed outline-none rounded-lg"
                                             style="background: var(--tech-input-bg)">
                                     </div>
                                 @endif

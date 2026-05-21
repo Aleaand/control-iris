@@ -15,6 +15,7 @@ class Starship extends Model
         'cruise_speed_au'         => 'decimal:4',
         'crew_hourly_rate'        => 'decimal:2',
         'crew_daily_rate'         => 'decimal:2',
+        'depreciation_per_au'     => 'decimal:2',
         'maintenance_start_date'  => 'date',
         'maintenance_end_date'    => 'date',
     ];

@@ -25,6 +25,22 @@
         [x-cloak] {
             display: none !important;
         }
+
+        /* Anular variables en modo claro para que la zona de login/registro siempre renderice en modo oscuro */
+        .light-mode {
+            color-scheme: dark !important;
+            --bg-obsidian: #0a0a0f !important;
+            --bg-panel: #111119 !important;
+            --text-primary: #ffffff !important;
+            --text-secondary: #94a3b8 !important;
+            --border-glass: rgba(255, 255, 255, 0.08) !important;
+            --gradient-blue: #ffffff !important;
+            --tech-card-bg: rgba(28, 28, 40, 0.6) !important;
+            --tech-input-bg: rgba(255, 255, 255, 0.03) !important;
+            --tech-hover-bg: rgba(255, 255, 255, 0.05) !important;
+            --tech-dark-hover-bg: rgba(32, 32, 45, 0.8) !important;
+            --tech-hover-bg-card: rgba(25, 25, 35, 0.9) !important;
+        }
     </style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

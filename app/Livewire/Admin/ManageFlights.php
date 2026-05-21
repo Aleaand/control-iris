@@ -30,7 +30,7 @@ class ManageFlights extends Component
     #[\Livewire\Attributes\Url(as: 'date')]
     public $dateFilter = '';
 
-    public $sortDir = 'desc'; // Por defecto los más recientes primero (fecha más lejana o última creada)
+    public $sortDir = 'desc';
     public $flightId;
     public $flight_code;
     public $starship_id = '';
@@ -82,6 +82,9 @@ class ManageFlights extends Component
 
     public $outbound_total_cost = 0;
     public $return_total_cost = 0;
+    public $depreciation_per_au = 0;
+    public $flight_depreciation = 0;
+    public $return_flight_depreciation = 0;
     public $showReturnForm = false;
     public $return_departure_date = null;
     public $return_arrival_date = null;
@@ -322,6 +325,7 @@ class ManageFlights extends Component
                 $this->mission_speed_au = (float) ($starship->cruise_speed_au ?? 0);
                 $this->crew_hourly_rate = (float) ($starship->crew_hourly_rate ?? 0);
                 $this->crew_daily_rate = (float) ($starship->crew_daily_rate ?? 0);
+                $this->depreciation_per_au = (float) ($starship->depreciation_per_au ?? 0);
                 $this->shipStatus = $starship->status;
 
                 $this->shipMaintenanceEnd = $starship->maintenance_end_date
@@ -541,6 +545,7 @@ class ManageFlights extends Component
         $this->crew_cost_outbound = round($crewCount * $this->crew_hourly_rate * $this->flight_hours_outbound, 2);
         $this->crew_cost_waiting = round($crewCount * $this->crew_daily_rate * $this->waiting_days, 2);
         $this->ship_outbound_cost = round($this->au_distance * $this->shipCostPerAu, 2);
+        $this->flight_depreciation = round($this->au_distance * $this->depreciation_per_au, 2);
 
         $this->outbound_total_cost = round(
             (float) $this->launch_cost_earth +
@@ -548,7 +553,8 @@ class ManageFlights extends Component
             (float) $this->launch_cost_planet +
             (float) $this->landing_cost_earth +
             $this->crew_cost_outbound +
-            $this->ship_outbound_cost,
+            $this->ship_outbound_cost +
+            $this->flight_depreciation,
             2
         );
 
@@ -570,6 +576,7 @@ class ManageFlights extends Component
         if ($this->showReturnForm) {
             $this->ship_return_cost = round($this->return_au_distance * $this->shipCostPerAu, 2);
             $this->crew_cost_return = round($crewCount * $this->crew_hourly_rate * $this->flight_hours_return, 2);
+            $this->return_flight_depreciation = round($this->return_au_distance * $this->depreciation_per_au, 2);
 
             $this->return_total_cost = round(
                 (float) $this->launch_cost_planet +
@@ -578,7 +585,8 @@ class ManageFlights extends Component
                 (float) $this->landing_cost_planet +
                 $this->crew_cost_return +
                 $this->crew_cost_waiting +
-                $this->ship_return_cost,
+                $this->ship_return_cost +
+                $this->return_flight_depreciation,
                 2
             );
 
@@ -597,6 +605,7 @@ class ManageFlights extends Component
             $this->return_supernova_price = 0;
             $this->ship_return_cost = 0;
             $this->crew_cost_return = 0;
+            $this->return_flight_depreciation = 0;
         }
 
         // Totales
@@ -681,6 +690,9 @@ class ManageFlights extends Component
         $this->return_arrival_date = null;
         $this->return_au_distance = 0;
         $this->return_base_price = 0;
+        $this->depreciation_per_au = 0;
+        $this->flight_depreciation = 0;
+        $this->return_flight_depreciation = 0;
 
         // Cálculos misión
         $this->flight_hours_outbound = 0;
@@ -904,6 +916,7 @@ class ManageFlights extends Component
         $this->landing_cost_planet = (float) ($outbound->landing_cost_planet ?? 0);
         $this->landing_cost_earth = 0;
         $this->launch_cost_planet = 0;
+        $this->flight_depreciation = (float) ($outbound->flight_depreciation ?? 0);
         $this->suggested_arrival_date = $this->arrival_date;
         $this->isReturnFlight = false;
         if ($return) {
@@ -915,13 +928,16 @@ class ManageFlights extends Component
             $this->return_au_distance = (int) ($return->au_distance ?? $outbound->au_distance);
             $this->landing_cost_earth = (float) ($return->landing_cost_earth ?? 0);
             $this->launch_cost_planet = (float) ($return->launch_cost_planet ?? 0);
+            $this->return_flight_depreciation = (float) ($return->flight_depreciation ?? 0);
         } else {
             $this->showReturnForm = false;
+            $this->return_flight_depreciation = 0;
         }
         if ($this->starship_id) {
             $starship = Starship::with('currentLocation')->find($this->starship_id);
             if ($starship) {
                 $this->shipCostPerAu = (float) $starship->operational_cost_per_au;
+                $this->depreciation_per_au = (float) ($starship->depreciation_per_au ?? 0);
                 $this->crew_members = (int) $starship->crew_capacity;
                 $this->shipStatus = $starship->status;
                 $this->shipMaintenanceEnd = $starship->maintenance_end_date
@@ -1060,6 +1076,7 @@ class ManageFlights extends Component
             'au_distance' => $this->au_distance,
             'total_capacity' => $this->total_capacity,
             'operational_cost' => $this->outbound_total_cost,
+            'flight_depreciation' => $this->flight_depreciation,
             'mission_speed_au' => $this->mission_speed_au,
             'crew_hourly_rate' => $this->crew_hourly_rate,
             'crew_daily_rate' => $this->crew_daily_rate,
@@ -1147,6 +1164,7 @@ class ManageFlights extends Component
                     'au_distance' => $this->return_au_distance ?: $this->au_distance,
                     'total_capacity' => $this->total_capacity,
                     'operational_cost' => $this->return_total_cost,
+                    'flight_depreciation' => $this->return_flight_depreciation,
                     'mission_speed_au' => $this->mission_speed_au,
                     'crew_hourly_rate' => $this->crew_hourly_rate,
                     'crew_daily_rate' => $this->crew_daily_rate,
@@ -1196,7 +1214,7 @@ class ManageFlights extends Component
             $flight = Flight::create($data);
             $launchTotal = (float) $this->launch_cost_earth + (float) $this->launch_cost_planet;
             $landingTotal = (float) $this->landing_cost_planet + (float) $this->landing_cost_earth;
-            $this->generateExpensesForFlight($flight, $launchTotal, $landingTotal, $this->crew_cost_outbound, $this->ship_outbound_cost, 0);
+            $this->generateExpensesForFlight($flight, $launchTotal, $landingTotal, $this->crew_cost_outbound, $this->ship_outbound_cost, 0, $this->flight_depreciation);
 
             if ($this->showReturnForm && $this->return_departure_date) {
                 $returnArrDate = $this->return_arrival_date ?: Carbon::parse($this->return_departure_date)->addHours($this->flight_hours_return)->format('Y-m-d\TH:i');
@@ -1228,7 +1246,7 @@ class ManageFlights extends Component
 
                 $launchTotalRet = (float) $this->launch_cost_planet + (float) $this->launch_cost_earth;
                 $landingTotalRet = (float) $this->landing_cost_earth + (float) $this->landing_cost_planet;
-                $this->generateExpensesForFlight($returnFlight, $launchTotalRet, $landingTotalRet, $this->crew_cost_return, $this->ship_return_cost, $this->crew_cost_waiting);
+                $this->generateExpensesForFlight($returnFlight, $launchTotalRet, $landingTotalRet, $this->crew_cost_return, $this->ship_return_cost, $this->crew_cost_waiting, $this->return_flight_depreciation);
             }
 
             session()->flash('message', 'Nuevo Vuelo programado con éxito.');
@@ -1238,7 +1256,7 @@ class ManageFlights extends Component
         $this->showSaveModal = false;
     }
 
-    private function generateExpensesForFlight($flight, $launchCost, $landingCost, $crewCost, $shipCost, $waitingCost)
+    private function generateExpensesForFlight($flight, $launchCost, $landingCost, $crewCost, $shipCost, $waitingCost, $depreciationCost = 0)
     {
         $expenses = [];
         $date = $flight->departure_date ?? now();
@@ -1302,6 +1320,19 @@ class ManageFlights extends Component
                 'category' => 'operational_flight',
                 'description' => 'Coste operativo de la nave (AU)',
                 'amount' => $shipCost,
+                'expense_date' => $date,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if ($depreciationCost > 0) {
+            $expenses[] = [
+                'flight_id' => $flight->id,
+                'reference' => 'DEP-' . $flight->flight_code,
+                'category' => 'operational_flight',
+                'description' => 'Depreciación contable del activo',
+                'amount' => $depreciationCost,
                 'expense_date' => $date,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -1464,25 +1495,30 @@ class ManageFlights extends Component
         $this->showDeleteModal = false;
     }
 
-    public function executeDelete()
+    public function executeDelete(bool $deleteBoth = false)
     {
         if ($this->deleteId) {
             $flight = Flight::find($this->deleteId);
             if ($flight) {
-                $isReturn = str_ends_with($flight->flight_code, '-RET');
-                if ($isReturn) {
-                    $outboundCode = Str::beforeLast($flight->flight_code, '-RET');
-                    $siblingFlight = Flight::where('flight_code', $outboundCode)->first();
+                if ($deleteBoth) {
+                    $isReturn = str_ends_with($flight->flight_code, '-RET');
+                    if ($isReturn) {
+                        $outboundCode = Str::beforeLast($flight->flight_code, '-RET');
+                        $siblingFlight = Flight::where('flight_code', $outboundCode)->first();
+                    } else {
+                        $siblingFlight = Flight::where('flight_code', $flight->flight_code . '-RET')->first();
+                    }
+
+                    if ($siblingFlight) {
+                        $siblingFlight->forceDelete();
+                    }
+                    $flight->forceDelete();
+
+                    session()->flash('message', 'Se han eliminado ambos vuelos con éxito.');
                 } else {
-                    $siblingFlight = Flight::where('flight_code', $flight->flight_code . '-RET')->first();
+                    $flight->forceDelete();
+                    session()->flash('message', 'El vuelo se ha eliminado con éxito.');
                 }
-
-                if ($siblingFlight) {
-                    $siblingFlight->forceDelete();
-                }
-                $flight->forceDelete();
-
-                session()->flash('message', 'Eliminación en cascada realizada con éxito.');
             }
         }
 

@@ -16,6 +16,7 @@ class ManageStarships extends Component
     use WithPagination, HasResponsivePagination;
     public $name, $general_capacity, $vip_capacity, $crew_capacity, $status = 'active';
     public $operational_cost_per_au = 0;
+    public $depreciation_per_au = 0;
     public $cruise_speed_au = 0;
     public $crew_hourly_rate = 0;
     public $crew_daily_rate = 0;
@@ -62,6 +63,7 @@ class ManageStarships extends Component
             'crew_capacity' => 'required|integer|min:0',
             'status' => 'required|string|max:50',
             'operational_cost_per_au' => 'required|numeric|min:0',
+            'depreciation_per_au' => 'required|numeric|min:0',
             'cruise_speed_au' => 'required|numeric|min:0.0001',
             'crew_hourly_rate' => 'nullable|numeric|min:0',
             'crew_daily_rate' => 'nullable|numeric|min:0',
@@ -82,6 +84,7 @@ class ManageStarships extends Component
         $this->vip_capacity = 0;
         $this->crew_capacity = 0;
         $this->operational_cost_per_au = 0;
+        $this->depreciation_per_au = 0;
         $this->cruise_speed_au = 0;
         $this->crew_hourly_rate = 0;
         $this->crew_daily_rate = 0;
@@ -193,6 +196,7 @@ class ManageStarships extends Component
             $this->vip_capacity = $starship->vip_capacity;
             $this->crew_capacity = $starship->crew_capacity;
             $this->operational_cost_per_au = $starship->operational_cost_per_au;
+            $this->depreciation_per_au = $starship->depreciation_per_au ?? 0;
             $this->cruise_speed_au = $starship->cruise_speed_au ?? 0;
             $this->crew_hourly_rate = $starship->crew_hourly_rate ?? 0;
             $this->crew_daily_rate = $starship->crew_daily_rate ?? 0;
@@ -258,6 +262,7 @@ class ManageStarships extends Component
             'vip_capacity' => $this->vip_capacity,
             'crew_capacity' => $this->crew_capacity,
             'operational_cost_per_au' => $this->operational_cost_per_au,
+            'depreciation_per_au' => $this->depreciation_per_au,
             'cruise_speed_au' => $this->cruise_speed_au,
             'crew_hourly_rate' => $this->crew_hourly_rate,
             'crew_daily_rate' => $this->crew_daily_rate,

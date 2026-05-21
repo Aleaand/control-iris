@@ -662,8 +662,8 @@
                     </button>
                 </div>
 
-                <div class="rounded-xl border border-white/10 p-4 overflow-y-auto overflow-x-auto max-h-[300px] custom-scrollbar" style="background: rgba(0,0,0,0.3)">
-                    <pre class="text-[11px] font-mono text-emerald-400/90 leading-relaxed">{{ $analysisResults['raw_json'] }}</pre>
+                <div class="rounded-xl border border-zinc-200 p-4 overflow-y-auto overflow-x-auto max-h-[300px] custom-scrollbar" style="background: #ffffff;">
+                    <pre class="text-[11px] font-mono text-zinc-950 leading-relaxed">{{ $analysisResults['raw_json'] }}</pre>
                 </div>
 
                 <div class="mt-6 flex justify-end gap-3">

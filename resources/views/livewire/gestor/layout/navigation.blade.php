@@ -295,8 +295,8 @@ new class extends Component {
                     </p>
                     <div class="flex gap-4 w-full">
                         <button @click="showLogoutModal = false"
-                            class="flex-1 px-6 py-3 bg-zinc-900 text-zinc-400 font-bold text-[10px] uppercase tracking-widest rounded-xl border border-white/5 hover:bg-zinc-800 transition-all">
-                            Abortar
+                            class="flex-1 px-6 py-3 bg-white text-zinc-400 font-bold text-[10px] uppercase tracking-widest rounded-xl border border-white/5 hover:bg-zinc-800 transition-all">
+                            Cancelar
                         </button>
                         <button wire:click="logout"
                             class="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.4)]">

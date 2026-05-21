@@ -19,6 +19,7 @@ class Flight extends Model
         'price_updated_at'      => 'datetime',
         'au_distance'           => 'decimal:2',
         'operational_cost'      => 'decimal:2',
+        'flight_depreciation'   => 'decimal:2',
         'mission_speed_au'      => 'decimal:4',
         'crew_hourly_rate'      => 'decimal:2',
         'crew_daily_rate'       => 'decimal:2',
@@ -72,7 +73,7 @@ class Flight extends Model
 
     public function getRealIncomeAttribute()
     {
-        return $this->reservations()->where('payment_status', 'paid')->sum('total_price');
+        return $this->reservations()->whereIn('payment_status', ['paid', 'pending'])->sum('total_price');
     }
 
     public function getMaxIncomeAttribute()

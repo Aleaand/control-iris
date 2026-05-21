@@ -730,7 +730,7 @@
                                     <div
                                         class="flex justify-between text-[var(--text-secondary)] border-t border-[var(--border-glass)] pt-2 mt-2 mb-1">
                                         <span
-                                            class="font-bold uppercase tracking-widest text-[var(--neon-rose)]/70">Costes</span>
+                                            class="font-bold uppercase tracking-widest text-[var(--neon-rose)]/70">ANÁLISIS DE COSTES OPERATIVOS</span>
                                     </div>
 
                                     {{-- Gastos Ida --}}
@@ -740,31 +740,40 @@
                                     <div class="flex justify-between">
                                         <span class="text-[var(--text-secondary)] pl-2">Gastos despegue</span>
                                         <span
-                                            class="font-mono text-[var(--neon-rose)]/70">-{{ number_format((float) $launch_cost_earth, 0) }}
+                                            class="font-mono text-[var(--neon-rose)]/70">-{{ number_format((float) $launch_cost_earth, 2) }}
                                             €</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-[var(--text-secondary)] pl-2">Gastos aterrizaje</span>
                                         <span
-                                            class="font-mono text-[var(--neon-rose)]/70">-{{ number_format((float) $landing_cost_planet, 0) }}
+                                            class="font-mono text-[var(--neon-rose)]/70">-{{ number_format((float) $landing_cost_planet, 2) }}
                                             €</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-[var(--text-secondary)] pl-2">Gastos de empleados (horas)</span>
                                         <span
-                                            class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($crew_cost_outbound, 0) }}
+                                            class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($crew_cost_outbound, 2) }}
                                             €</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-[var(--text-secondary)] pl-2">Gastos de AU</span>
                                         <span
-                                            class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($ship_outbound_cost, 0) }}
+                                            class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($ship_outbound_cost, 2) }}
                                             €</span>
+                                    </div>
+                                    <div class="flex justify-between flex-col pl-2 mt-1">
+                                        <div class="flex justify-between">
+                                            <span class="text-[var(--text-secondary)]">Depreciación de Activo:</span>
+                                            <span class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($flight_depreciation, 2) }} €</span>
+                                        </div>
+                                        <span class="text-[9px] text-slate-400 font-mono tracking-normal leading-tight text-left pl-2">
+                                            Calculado automáticamente: {{ number_format($au_distance, 2) }} AU recorridas × {{ number_format($depreciation_per_au, 2) }} €/AU
+                                        </span>
                                     </div>
                                     <div class="flex justify-between font-bold mt-1">
                                         <span class="text-[var(--text-primary)] pl-1">Gastos Totales ida</span>
                                         <span
-                                            class="font-mono text-[var(--neon-rose)]">-{{ number_format($outbound_total_cost, 0) }}
+                                            class="font-mono text-[var(--neon-rose)]">-{{ number_format($outbound_total_cost, 2) }}
                                             €</span>
                                     </div>
 
@@ -776,31 +785,40 @@
                                         <div class="flex justify-between">
                                             <span class="text-[var(--text-secondary)] pl-2">Gastos despegue</span>
                                             <span
-                                                class="font-mono text-[var(--neon-rose)]/70">-{{ number_format((float) $launch_cost_planet, 0) }}
+                                                class="font-mono text-[var(--neon-rose)]/70">-{{ number_format((float) $launch_cost_planet, 2) }}
                                                 €</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span class="text-[var(--text-secondary)] pl-2">Gastos aterrizaje</span>
                                             <span
-                                                class="font-mono text-[var(--neon-rose)]/70">-{{ number_format((float) $landing_cost_earth, 0) }}
+                                                class="font-mono text-[var(--neon-rose)]/70">-{{ number_format((float) $landing_cost_earth, 2) }}
                                                 €</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span class="text-[var(--text-secondary)] pl-2">Gastos de empleados</span>
                                             <span
-                                                class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($crew_cost_return + $crew_cost_waiting, 0) }}
+                                                class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($crew_cost_return + $crew_cost_waiting, 2) }}
                                                 €</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span class="text-[var(--text-secondary)] pl-2">Gastos de AU</span>
                                             <span
-                                                class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($ship_return_cost, 0) }}
+                                                class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($ship_return_cost, 2) }}
                                                 €</span>
+                                        </div>
+                                        <div class="flex justify-between flex-col pl-2 mt-1">
+                                            <div class="flex justify-between">
+                                                <span class="text-[var(--text-secondary)]">Depreciación de Activo (Vuelta):</span>
+                                                <span class="font-mono text-[var(--neon-rose)]/70">-{{ number_format($return_flight_depreciation, 2) }} €</span>
+                                            </div>
+                                            <span class="text-[9px] text-slate-400 font-mono tracking-normal leading-tight text-left pl-2">
+                                                Calculado automáticamente: {{ number_format($return_au_distance ?: $au_distance, 2) }} AU recorridas × {{ number_format($depreciation_per_au, 2) }} €/AU
+                                            </span>
                                         </div>
                                         <div class="flex justify-between font-bold mt-1">
                                             <span class="text-[var(--text-primary)] pl-1">Gastos Totales vuelta</span>
                                             <span
-                                                class="font-mono text-[var(--neon-rose)]">-{{ number_format($return_total_cost, 0) }}
+                                                class="font-mono text-[var(--neon-rose)]">-{{ number_format($return_total_cost, 2) }}
                                                 €</span>
                                         </div>
                                     @endif
@@ -809,19 +827,19 @@
                                         class="flex justify-between font-bold border-t border-[var(--border-glass)] pt-2 mt-2">
                                         <span class="text-[var(--text-primary)]">Gastos Totales</span>
                                         <span
-                                            class="font-mono text-[var(--neon-rose)]">-{{ number_format($mission_total_cost, 0) }}
+                                            class="font-mono text-[var(--neon-rose)]">-{{ number_format($mission_total_cost, 2) }}
                                             €</span>
                                     </div>
                                     <div class="flex justify-between font-bold">
                                         <span class="text-[var(--text-primary)]">Ingresos Totales</span>
                                         <span
-                                            class="font-mono text-[var(--neon-cyan)]">{{ number_format($mission_total_revenue, 0) }}
+                                            class="font-mono text-[var(--neon-cyan)]">{{ number_format($mission_total_revenue, 2) }}
                                             €</span>
                                     </div>
                                     <div class="flex justify-between font-bold">
                                         <span class="text-[var(--text-primary)]">Ganancias Reales</span>
                                         <span
-                                            class="font-mono {{ $mission_profitability < 0 ? 'text-[var(--neon-rose)]' : 'text-[var(--neon-emerald)]' }}">{{ number_format($mission_profitability, 0) }}
+                                            class="font-mono {{ $mission_profitability < 0 ? 'text-[var(--neon-rose)]' : 'text-[var(--neon-emerald)]' }}">{{ number_format($mission_profitability, 2) }}
                                             €</span>
                                     </div>
 
@@ -1014,7 +1032,8 @@
             $landingCost = (float) $selectedFlight->landing_cost_planet;
             $flightHours = ceil((float) $selectedFlight->au_distance * (float) $selectedFlight->mission_speed_au);
             $crewCost = (int) $selectedFlight->booked_passengers * (float) $selectedFlight->crew_hourly_rate * $flightHours;
-            $auCost = max(0, (float) $selectedFlight->operational_cost - ($launchCost + $landingCost + $crewCost));
+            $depreciationCost = (float) ($selectedFlight->flight_depreciation ?? 0);
+            $auCost = max(0, (float) $selectedFlight->operational_cost - ($launchCost + $landingCost + $crewCost + $depreciationCost));
         @endphp
 
         <div class="fixed inset-0 z-[600] flex items-center justify-center p-4">
@@ -1239,6 +1258,11 @@
                                         <span class="text-[var(--text-primary)] font-mono">{{ number_format($auCost, 2) }}
                                             €</span>
                                     </div>
+                                    <div class="flex justify-between border-b border-[var(--border-glass)] pb-1">
+                                        <span class="text-[var(--text-secondary)]">Depreciación de Activo</span>
+                                        <span class="text-[var(--text-primary)] font-mono">{{ number_format($depreciationCost, 2) }}
+                                            €</span>
+                                    </div>
                                     <div class="flex justify-between font-black pt-1 text-[var(--neon-rose)]">
                                         <span class="text-[var(--text-secondary)]">Total Gastos</span>
                                         <span class="font-mono">{{ number_format($selectedFlight->operational_cost, 2) }}
@@ -1387,20 +1411,56 @@
                         <div>
                             <h3 class="text-lg font-black text-[var(--text-primary)] uppercase tracking-[0.1em] mb-2">
                                 Eliminar Vuelo</h3>
-                            <p class="text-[var(--text-secondary)] text-xs leading-relaxed font-medium">¿Confirmas la
-                                eliminación
-                                permanente del vuelo <span
-                                    class="text-[var(--text-primary)] font-bold">{{ $flightToDeleteCode }}</span>?
-                            </p>
+                            @if($siblingCodeToDelete)
+                                @if(!$flightToDeleteIsReturn)
+                                    {{-- Ida con retorno --}}
+                                    <p class="text-[var(--text-secondary)] text-xs leading-relaxed font-medium">
+                                        <span class="text-rose-500 font-bold block mb-1">⚠️ ¡ATENCIÓN!</span>
+                                        Cuidado, tienes el vuelo de retorno <span class="text-[var(--text-primary)] font-bold font-mono-tech">{{ $siblingCodeToDelete }}</span> asociado. ¿Quieres eliminar ambos vuelos o solo el de ida?
+                                    </p>
+                                @else
+                                    {{-- Retorno con ida --}}
+                                    <p class="text-[var(--text-secondary)] text-xs leading-relaxed font-medium">
+                                        <span class="text-rose-500 font-bold block mb-1">⚠️ ¡ATENCIÓN!</span>
+                                        Cuidado, tienes un vuelo de ida asociado. ¿Quieres borrar solo este vuelo de vuelta (<span class="text-[var(--text-primary)] font-bold font-mono-tech">{{ $flightToDeleteCode }}</span>), borrar ambos o cancelar?
+                                    </p>
+                                @endif
+                            @else
+                                {{-- Sin hermano --}}
+                                <p class="text-[var(--text-secondary)] text-xs leading-relaxed font-medium">¿Confirmas la
+                                    eliminación
+                                    permanente del vuelo <span
+                                        class="text-[var(--text-primary)] font-bold">{{ $flightToDeleteCode }}</span>?
+                                </p>
+                            @endif
                         </div>
                     </div>
-                    <div class="flex p-4 gap-3 bg-[var(--tech-input-bg)]">
-                        <button type="button" wire:click="$set('showDeleteModal', false)"
-                            class="flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl border border-[var(--border-glass)] text-[var(--text-secondary)] hover:bg-[var(--tech-hover-bg)] transition-all">Cancelar</button>
-                        <button type="button" wire:click="executeDelete"
-                            class="flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-widest text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-[0_0_20px_rgba(225,29,72,0.3)] transition-all">Confirmar
-                            Borrado</button>
-                    </div>
+                    @if($siblingCodeToDelete)
+                        <div class="flex flex-col p-4 gap-2 bg-[var(--tech-input-bg)]">
+                            <div class="flex gap-2">
+                                <button type="button" wire:click="executeDelete(false)"
+                                    class="flex-1 py-3 px-2 text-[9px] font-black uppercase tracking-widest text-zinc-300 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/50 rounded-xl transition-all">
+                                    {{ $flightToDeleteIsReturn ? 'Borrar solo vuelta' : 'Borrar solo ida' }}
+                                </button>
+                                <button type="button" wire:click="executeDelete(true)"
+                                    class="flex-1 py-3 px-2 text-[9px] font-black uppercase tracking-widest text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-[0_0_20px_rgba(225,29,72,0.3)] transition-all">
+                                    Borrar ambos
+                                </button>
+                            </div>
+                            <button type="button" wire:click="$set('showDeleteModal', false)"
+                                class="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl border border-[var(--border-glass)] text-[var(--text-secondary)] hover:bg-[var(--tech-hover-bg)] transition-all">
+                                Cancelar
+                            </button>
+                        </div>
+                    @else
+                        <div class="flex p-4 gap-3 bg-[var(--tech-input-bg)]">
+                            <button type="button" wire:click="$set('showDeleteModal', false)"
+                                class="flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl border border-[var(--border-glass)] text-[var(--text-secondary)] hover:bg-[var(--tech-hover-bg)] transition-all">Cancelar</button>
+                            <button type="button" wire:click="executeDelete(false)"
+                                class="flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-widest text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-[0_0_20px_rgba(225,29,72,0.3)] transition-all">Confirmar
+                                Borrado</button>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endif

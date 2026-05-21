@@ -47,17 +47,7 @@
                             </span>
                         </a>
                     </div>
-                    <div
-                        class="tech-card px-6 py-3 flex flex-col items-end {{ $porcentajeGanancias < 0 ? 'border-rose-500/30' : 'border-cyan-500/20' }}">
-                        <a href="{{ route('admin.finances') }}">
-                            <span
-                                class="font-mono-tech text-[9px] {{ $porcentajeGanancias < 0 ? 'text-rose-500' : 'text-cyan-500' }} uppercase tracking-widest">Ganancias</span>
-                            <span
-                                class="text-xl font-bold {{ $porcentajeGanancias < 0 ? 'text-rose-400' : 'text-cyan-400' }}">
-                                {{ number_format($porcentajeGanancias, 1) }}%
-                            </span>
-                        </a>
-                    </div>
+
                 </div>
             </div>
         </header>

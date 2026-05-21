@@ -15,8 +15,10 @@
             const theme = localStorage.getItem('theme') || 'light';
             if (theme === 'light') {
                 document.documentElement.classList.add('light-mode');
+                document.documentElement.style.backgroundColor = '#ffffff';
             } else {
                 document.documentElement.classList.remove('light-mode');
+                document.documentElement.style.backgroundColor = '#040d08';
             }
         }
         applyTheme();
