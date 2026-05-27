@@ -12,7 +12,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <script>
         function applyTheme() {
-            const theme = localStorage.getItem('theme') || 'light';
+            const theme = localStorage.getItem('theme') || 'dark';
             if (theme === 'light') {
                 document.documentElement.classList.add('light-mode');
                 document.documentElement.style.backgroundColor = '#ffffff';

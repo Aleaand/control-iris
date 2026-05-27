@@ -1,59 +1,98 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Iris Aerospace - ERP de Gestión (Control Interno)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Repositorio correspondiente a **`control-iris`**, el motor administrativo y ERP (Enterprise Resource Planning) del ecosistema de Iris Aerospace.
 
-## About Laravel
+## Descripción del Proyecto
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+`control-iris` es el cerebro operativo de la compañía. Se trata de un panel de control privado y robusto al que solo pueden acceder los empleados de la organización bajo un sistema de roles (Administrador y Gestor). 
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Sus funcionalidades principales incluyen:
+- **Gestión Logística:** Creación y mantenimiento del catálogo de Planetas, Naves Espaciales y Vuelos. Cuenta con protección contra borrado accidental (integridad referencial) y prevención de creación de vuelos con pérdidas económicas.
+- **Finanzas y Auditoría:** Panel de ingresos netos, seguimiento de la depreciación de las naves y auditoría inmutable de tarifas (`price_logs`).
+- **Sistema de Reembolsos:** Integración directa con Stripe para ejecutar devoluciones matemáticas parciales o totales de forma automatizada hacia la tarjeta del cliente.
+- **CRM y Tareas Automáticas (Observers):** El sistema detecta eventos críticos (como la cancelación de un vuelo) y genera notificaciones/tareas urgentes en la bandeja de entrada del Gestor asignado.
+- **Compliance y Emisión de Tickets:** Verificación de certificados legales (pasaportes) de los pasajeros y generación del *Ticket PDF Final* utilizando `dompdf`.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Stack Tecnológico
 
-## Learning Laravel
+El proyecto está desarrollado sobre un monolito estructurado y seguro, con reactividad moderna inyectada directamente desde el servidor:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- **Framework Backend:** [Laravel 12](https://laravel.com/) (PHP 8.2+)
+- **Reactividad Frontend:** [Livewire 3](https://livewire.laravel.com/) (Componentes dinámicos sin necesidad de recargar la página, emulando una SPA).
+- **Estilos:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **Base de Datos:** PostgreSQL
+- **PDF y Facturación:** `barryvdh/laravel-dompdf`
+- **Testing:** [Pest](https://pestphp.com/) / PHPUnit (Más de 130 aserciones para validar la precisión del motor de reembolsos).
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Estructura del Directorio
 
-## Laravel Sponsors
+```text
+control-iris/
+├── app/                  # Lógica central: Modelos (Eloquent), Observers, Livewire Components
+├── config/               # Configuraciones del framework y servicios externos
+├── database/             # Migraciones (esquemas de BBDD) y Seeders
+├── resources/            # Vistas (Blade Templates), estilos (CSS) y scripts
+├── routes/               # Rutas protegidas (`web.php` con middlewares de roles)
+├── tests/                # Pruebas automatizadas del Refund Engine (Pest)
+└── composer.json         # Dependencias del ecosistema PHP
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Instalación y Configuración
 
-### Premium Partners
+Sigue estos pasos para levantar el ERP en tu entorno local:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 1. Clonar el repositorio y acceder a la carpeta
+```bash
+git clone <url>
+cd control-iris
+```
 
-## Contributing
+### 2. Instalar las dependencias de PHP y Node
+```bash
+composer install
+npm install
+npm run build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 3. Variables de Entorno
+Copia el archivo de ejemplo para crear tu entorno local:
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+Configura la conexión a tu base de datos PostgreSQL (la misma que usan `iris-web` e `iris-api`) y las credenciales de Stripe en el `.env`:
 
-## Code of Conduct
+```env
+DB_CONNECTION=pgsql
+DB_HOST=ep-nombre-servidor.neon.tech
+DB_PORT=5432
+DB_DATABASE=iris_db
+DB_USERNAME=usuario_neon
+DB_PASSWORD=tu_contraseña
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+STRIPE_SECRET=sk_test_...
+```
 
-## Security Vulnerabilities
+### 4. Levantar el servidor
+```bash
+php artisan serve
+```
+El panel de control estará accesible en [http://localhost:8000](http://localhost:8000).
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Pruebas
 
-## License
+El ERP cuenta con una suite de auditoría transaccional para garantizar que los márgenes de beneficio corporativo estén protegidos ante reembolsos complejos. 
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Para ejecutar las pruebas lógicas:
+```bash
+php artisan test
+```
+
+## Enlaces Relacionados (Ecosistema Iris)
+
+El monolito es el gestor central y comparte la misma base de datos relacional con:
+1. **Frontend Público (`iris-web`)**: Portal del cliente donde ocurren las compras.
+2. **API Bridge (`iris-api`)**: Servidor encargado de la validación inicial y enlace seguro de los pagos hacia la BBDD.
+
+## Licencia / Autoría
+Desarrollado por Alejandra para su proyecto de final. Todos los derechos reservados al contexto académico del proyecto.

@@ -14,7 +14,7 @@
         <!-- Scripts -->
         <script>
             function applyTheme() {
-                const theme = localStorage.getItem('theme') || 'light';
+                const theme = localStorage.getItem('theme') || 'dark';
                 if (theme === 'dark') {
                     document.documentElement.classList.remove('light-mode');
                     document.documentElement.style.backgroundColor = '#0a0a0f';

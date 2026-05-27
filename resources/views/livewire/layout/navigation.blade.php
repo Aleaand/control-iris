@@ -20,7 +20,7 @@ new class extends Component {
     openUsuarios: false,
     showLogoutModal: false,
     isCollapsed: localStorage.getItem('sidebar-collapsed') === null ? true : localStorage.getItem('sidebar-collapsed') === 'true',
-    isDarkMode: localStorage.getItem('theme') === 'dark',
+    isDarkMode: localStorage.getItem('theme') === null ? true : localStorage.getItem('theme') === 'dark',
     localTime: '',
     serverTime: '',
     diff: 0,

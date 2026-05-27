@@ -9,7 +9,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <script>
         function applyTheme() {
-            const theme = localStorage.getItem('theme') || 'light';
+            const theme = localStorage.getItem('theme') || 'dark';
             if (theme === 'dark') {
                 document.documentElement.classList.remove('light-mode');
                 document.documentElement.style.backgroundColor = '#0a0a0f';

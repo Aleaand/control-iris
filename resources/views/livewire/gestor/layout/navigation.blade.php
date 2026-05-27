@@ -16,7 +16,7 @@ new class extends Component {
     openUser: false,
     showLogoutModal: false,
     isCollapsed: localStorage.getItem('sidebar-collapsed') === null ? true : localStorage.getItem('sidebar-collapsed') === 'true',
-    isDarkMode: localStorage.getItem('theme') === 'dark',
+    isDarkMode: localStorage.getItem('theme') === null ? true : localStorage.getItem('theme') === 'dark',
     localTime: '',
     toggleTheme() {
         this.isDarkMode = !this.isDarkMode;

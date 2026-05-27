@@ -3,3 +3,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.text-xs {
+    font-size: 0.94rem !important;
+}
+
+.text-sm {
+    font-size: 0.97rem !important;
+}
+
+.nav-module-label {
+    font-size: 11px !important;
+}
+
+.nav-item {
+    font-size: 15px !important;
+}
+
+.nav-submenu-item {
+    font-size: 14px !important;
+}
+.text-\[9px\] {
+    font-size: 11px !important;
+}
+
+.text-\[10px\] {
+    font-size: 12px !important;
+}
+
